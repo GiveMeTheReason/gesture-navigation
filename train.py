@@ -21,8 +21,8 @@ def main():
     train_set = SHREC2017_Dataset(root_dir, frames=8, train=True, transform=train_transforms)
     test_set = SHREC2017_Dataset(root_dir, frames=8, train=False, transform=test_transforms)
 
-    train_loader = DataLoader(train_set, batch_size=16, num_workers=1)
-    test_loader = DataLoader(test_set, batch_size=16, num_workers=1)
+    train_loader = DataLoader(train_set, batch_size=16, num_workers=1, shuffle=True)
+    test_loader = DataLoader(test_set, batch_size=16, num_workers=1, shuffle=True)
 
     model = CNN_Classifier(frames=8, num_classes=14)
     device = 'cpu' if not torch.cuda.is_available() else 'cuda'
@@ -33,7 +33,8 @@ def main():
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-5)
     loss_func = CrossEntropyLoss()
 
-    epochs = 1
+    epochs = 50
+    validate_each_epoch = 5
 
     time = datetime.now().strftime("%H:%M:%S")
     with open(log_filename, 'a', encoding='utf-8') as log_file:
@@ -72,10 +73,10 @@ def main():
         time = datetime.now().strftime("%H:%M:%S")
 
         with open(log_filename, 'a', encoding='utf-8') as log_file:
-            log_file.write(f'{time} [Epoch: {epoch+1}] Train acc: {train_accuracy} | loss: {train_loss}\n')
-        print(f'{time} [Epoch: {epoch+1}] Train acc: {train_accuracy} | loss: {train_loss}')
+            log_file.write(f'{time} [Epoch: {epoch+1:02}] Train acc: {train_accuracy:.4f} | loss: {train_loss:.4f}\n')
+        print(f'{time} [Epoch: {epoch+1:02}] Train acc: {train_accuracy:.4f} | loss: {train_loss:.4f}')
 
-        if (epoch+1) % 5 == 0:
+        if (epoch+1) % validate_each_epoch == 0:
             model.eval()
             accuracy = 0
             loss = 0
@@ -97,8 +98,8 @@ def main():
             time = datetime.now().strftime("%H:%M:%S")
 
             with open(log_filename, 'a', encoding='utf-8') as log_file:
-                log_file.write(f'{time} [Epoch: {epoch+1}] Val acc: {accuracy} | loss: {loss}\n')
-            print(f'{time} [Epoch: {epoch+1}] Val acc: {accuracy} | loss: {loss}')
+                log_file.write(f'{time} [Epoch: {epoch+1:02}] Valid acc: {accuracy:.4f} | loss: {loss:.4f}\n')
+            print(f'{time} [Epoch: {epoch+1:02}] Valid acc: {accuracy:.4f} | loss: {loss:.4f}')
 
             torch.save({'model_state_dict': model.state_dict()}, checkpoint_path)
 

@@ -51,9 +51,7 @@ class CNN_Model(nn.Module):
         self.blocks = nn.Sequential(
             ResNet_Block(in_channels, 16, mode='down'),
             ResNet_Block(16, 16, mode='identity'),
-            ResNet_Block(16, 16, mode='identity'),
             ResNet_Block(16, 32, mode='down'),
-            ResNet_Block(32, 32, mode='identity'),
             ResNet_Block(32, 32, mode='identity'),
             ResNet_Block(32, out_channels, mode='down')
             )
@@ -67,23 +65,17 @@ class Linear_Head(nn.Module):
         super().__init__()
         self.blocks = nn.Sequential(
             nn.Flatten(),
-            nn.Dropout(p=0.1),
-            nn.BatchNorm1d(in_dim),
-            nn.Linear(in_dim, in_dim),
-            nn.ReLU(),
 
-            nn.Dropout(p=0.1),
-            nn.BatchNorm1d(in_dim),
             nn.Linear(in_dim, 8 * 9 * 12),
-            nn.ReLU(),
-
-            nn.Dropout(p=0.1),
             nn.BatchNorm1d(8 * 9 * 12),
-            nn.Linear(8 * 9 * 12, 9 * 12),
+            nn.Dropout(p=0.1),
             nn.ReLU(),
 
-            nn.Dropout(p=0.1),
+            nn.Linear(8 * 9 * 12, 9 * 12),
             nn.BatchNorm1d(9 * 12),
+            nn.Dropout(p=0.1),
+            nn.ReLU(),
+
             nn.Linear(9 * 12, num_classes),
             )
 
