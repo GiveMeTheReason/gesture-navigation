@@ -11,7 +11,7 @@ from datetime import datetime
 
 
 def main():
-    log_filename = "train_log.txt"
+    log_filename = "trained/train_log.txt"
     root_dir = os.path.join(os.path.expanduser("~"), "datasets/SHREC2017/HandGestureDataset_SHREC2017/")
 
     target_size = (72, 96)
@@ -28,7 +28,7 @@ def main():
     device = 'cpu' if not torch.cuda.is_available() else 'cuda'
     model.to(device)
 
-    checkpoint_path = "checkpoint.pth"
+    checkpoint_path = "trained/checkpoint.pth"
 
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-5)
     loss_func = CrossEntropyLoss()

@@ -1,7 +1,7 @@
 import re
 import matplotlib.pyplot as plt
 
-log_filename = "train_log.txt"
+log_filename = "trained/train_log.txt"
 
 train_loss = [0]
 train_acc = [0]
@@ -48,7 +48,7 @@ plt.grid()
 plt.legend()
 plt.xlabel('Epoch')
 plt.ylabel('Accuracy')
-plt.savefig('accuracy.png')
+plt.savefig('trained/accuracy.png')
 
 plt.figure()
 plt.plot(train_epoch, train_loss, label='Train loss')
@@ -57,4 +57,4 @@ plt.grid()
 plt.legend()
 plt.xlabel('Epoch')
 plt.ylabel('CrossEntropyLoss')
-plt.savefig('loss.png')
+plt.savefig('trained/loss.png')
