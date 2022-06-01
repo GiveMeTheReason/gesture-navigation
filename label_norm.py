@@ -1,5 +1,3 @@
-
-
 label_filename = './HandGestureDataset_SHREC2017/train_gestures.txt'
 out_filename = './HandGestureDataset_SHREC2017/train_gestures_norm.txt'
 

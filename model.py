@@ -11,22 +11,22 @@ class ResNet_Block(nn.Module):
         mode = 'identity'
     ):
         super().__init__()
-        
+
         self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1)
         self.bn1 = nn.BatchNorm2d(in_channels)
         self.activation = nn.LeakyReLU(inplace=True)
         self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=stride, padding=1)
         self.bn2 = nn.BatchNorm2d(out_channels)
-        
+
         self.identity_conv = nn.Conv2d(in_channels, out_channels, kernel_size=1)
-        
+
         if mode == 'identity':
             self.identity_resample = nn.Identity()
         elif mode == 'up':
             self.identity_resample = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
         elif mode == 'down':
             self.identity_resample = nn.MaxPool2d(kernel_size=2)
-    
+
     def forward(self, input: torch.Tensor):
         identity = input
 
@@ -67,17 +67,17 @@ class Linear_Head(nn.Module):
         super().__init__()
         self.blocks = nn.Sequential(
             nn.Flatten(),
-            nn.Dropout(p=0.3),
+            nn.Dropout(p=0.1),
             nn.BatchNorm1d(in_dim),
             nn.Linear(in_dim, in_dim),
             nn.ReLU(),
 
-            nn.Dropout(p=0.3),
+            nn.Dropout(p=0.1),
             nn.BatchNorm1d(in_dim),
             nn.Linear(in_dim, 8 * 9 * 12),
             nn.ReLU(),
 
-            nn.Dropout(p=0.2),
+            nn.Dropout(p=0.1),
             nn.BatchNorm1d(8 * 9 * 12),
             nn.Linear(8 * 9 * 12, 9 * 12),
             nn.ReLU(),
@@ -96,6 +96,6 @@ class CNN_Classifier(nn.Module):
         super().__init__()
         self.cnn_model = CNN_Model(in_channels=frames, out_channels=64)
         self.head = Linear_Head(in_dim=64*9*12, num_classes=num_classes)
-    
+
     def forward(self, input: torch.Tensor):
         return self.head(self.cnn_model(input))

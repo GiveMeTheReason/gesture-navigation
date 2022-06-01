@@ -7,20 +7,22 @@ from model import CNN_Classifier
 from transforms import Train_Transforms, Test_Transforms
 
 import os
-from datetime import datetime 
+from datetime import datetime
+
 
 def main():
-    log_filename = 'train_log.txt'
-    root_dir = os.path.join(os.path.expanduser("~"), 'datasets/SHREC2017/HandGestureDataset_SHREC2017/')
+    log_filename = "train_log.txt"
+    root_dir = os.path.join(os.path.expanduser("~"), "datasets/SHREC2017/HandGestureDataset_SHREC2017/")
 
-    train_transforms = Train_Transforms()
-    test_transforms = Test_Transforms()
+    target_size = (72, 96)
+    train_transforms = Train_Transforms(target_size=target_size)
+    test_transforms = Test_Transforms(target_size=target_size)
 
     train_set = SHREC2017_Dataset(root_dir, frames=8, train=True, transform=train_transforms)
     test_set = SHREC2017_Dataset(root_dir, frames=8, train=False, transform=test_transforms)
 
-    train_loader = DataLoader(train_set, batch_size=8, num_workers=1)
-    test_loader = DataLoader(test_set, batch_size=8, num_workers=1)
+    train_loader = DataLoader(train_set, batch_size=16, num_workers=1)
+    test_loader = DataLoader(test_set, batch_size=16, num_workers=1)
 
     model = CNN_Classifier(frames=8, num_classes=14)
     device = 'cpu' if not torch.cuda.is_available() else 'cuda'
@@ -31,7 +33,16 @@ def main():
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-5)
     loss_func = CrossEntropyLoss()
 
-    epochs = 20
+    epochs = 1
+
+    time = datetime.now().strftime("%H:%M:%S")
+    with open(log_filename, 'a', encoding='utf-8') as log_file:
+        log_file.write(f'{time} | Training for {epochs} epochs started!\n')
+        log_file.write(f'Train set length: {len(train_set)}\n')
+        log_file.write(f'Test set length: {len(test_set)}\n')
+    print(f'{time} | Training for {epochs} started!')
+    print(f'Train set length: {len(train_set)}')
+    print(f'Test set length: {len(test_set)}')
 
     for epoch in range(epochs):
 
@@ -55,13 +66,14 @@ def main():
             train_accuracy += (prediction_labels == labels).float().sum()
             train_loss += loss.item()
             n += len(labels)
-        
+
         train_accuracy /= n
         train_loss /= len(train_loader)
         time = datetime.now().strftime("%H:%M:%S")
 
         with open(log_filename, 'a', encoding='utf-8') as log_file:
             log_file.write(f'{time} [Epoch: {epoch+1}] Train acc: {train_accuracy} | loss: {train_loss}\n')
+        print(f'{time} [Epoch: {epoch+1}] Train acc: {train_accuracy} | loss: {train_loss}')
 
         if (epoch+1) % 5 == 0:
             model.eval()
@@ -76,16 +88,17 @@ def main():
                     prediction = model(val_images)
                     prediction_probs, prediction_labels = prediction.max(1)
 
-                    accuracy += (prediction_labels == labels).float().sum()
-                    loss += loss_func(prediction, labels).item()
-                    n += len(labels)
-            
+                    accuracy += (prediction_labels == val_labels).float().sum()
+                    loss += loss_func(prediction, val_labels).item()
+                    n += len(val_labels)
+
             accuracy /= n
             loss /= len(test_loader)
             time = datetime.now().strftime("%H:%M:%S")
 
             with open(log_filename, 'a', encoding='utf-8') as log_file:
                 log_file.write(f'{time} [Epoch: {epoch+1}] Val acc: {accuracy} | loss: {loss}\n')
+            print(f'{time} [Epoch: {epoch+1}] Val acc: {accuracy} | loss: {loss}')
 
             torch.save({'model_state_dict': model.state_dict()}, checkpoint_path)
 

@@ -35,10 +35,10 @@ class SHREC2017_Dataset(Dataset):
         seq = np.zeros((self.frames, self.h, self.w), dtype=np.float32)
         for i in range(self.frames):
             # sample from part
-            frame_id = np.random.randint(bins[i], bins[i + 1])
+            frame_id = np.random.randint(bins[i], bins[i + 1] + 0.999)
             image_path = os.path.join(seq_path, f'{frame_id}_depth.png')
             seq[i] = np.array(Image.open(image_path), dtype=np.float32)
-        
+
         # apply transforms
         if self.transform:
             seq = self.transform(torch.from_numpy(seq))
