@@ -1,7 +1,11 @@
+# Visualize losses and accuracy stored in train_log.txt file
+
 import re
 import matplotlib.pyplot as plt
 
-log_filename = "trained/train_log.txt"
+exp_id = '03'
+
+log_filename = f"experiments/train_log{exp_id}.txt"
 
 train_loss = [0]
 train_acc = [0]
@@ -48,7 +52,7 @@ plt.grid()
 plt.legend()
 plt.xlabel('Epoch')
 plt.ylabel('Accuracy')
-plt.savefig('trained/accuracy.png')
+plt.savefig(f'experiments/accuracy{exp_id}.png')
 
 plt.figure()
 plt.plot(train_epoch, train_loss, label='Train loss')
@@ -57,4 +61,4 @@ plt.grid()
 plt.legend()
 plt.xlabel('Epoch')
 plt.ylabel('CrossEntropyLoss')
-plt.savefig('trained/loss.png')
+plt.savefig(f'experiments/loss{exp_id}.png')

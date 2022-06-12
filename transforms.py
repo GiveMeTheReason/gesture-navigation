@@ -20,8 +20,7 @@ class Train_Transforms():
                 transforms.RandomHorizontalFlip(p=0.5),
                 transforms.RandomAffine(degrees=30, translate=(0.3, 0.3), scale=(0.7, 1.3), interpolation=nearest),
                 transforms.RandomPerspective(distortion_scale=0.4, p=0.5, interpolation=nearest),
-                Normalize(),
-                nn.Threshold(threshold=0.75, value=0)
+                Normalize()
             ])
 
     def __call__(self, tensor):
@@ -33,8 +32,7 @@ class Test_Transforms():
         self.transforms = transforms.Compose([
                 # transforms.ToTensor(),
                 transforms.Resize(target_size, interpolation=nearest),
-                Normalize(),
-                nn.Threshold(threshold=0.75, value=0)
+                Normalize()
             ])
 
     def __call__(self, tensor):
