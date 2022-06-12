@@ -9,9 +9,13 @@ from transforms import Train_Transforms, Test_Transforms
 import os
 from datetime import datetime
 
+import matplotlib.pyplot as plt
+import numpy as np
+
+exp_id = '03'
 
 def main():
-    log_filename = "trained/train_log.txt"
+    log_filename = f"experiments/train_log{exp_id}.txt"
     root_dir = os.path.join(os.path.expanduser("~"), "datasets/SHREC2017/HandGestureDataset_SHREC2017/")
 
     target_size = (72, 96)
@@ -28,7 +32,7 @@ def main():
     device = 'cpu' if not torch.cuda.is_available() else 'cuda'
     model.to(device)
 
-    checkpoint_path = "trained/checkpoint.pth"
+    checkpoint_path = f"experiments/checkpoint{exp_id}.pth"
 
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-5)
     loss_func = CrossEntropyLoss()
@@ -53,6 +57,16 @@ def main():
         n = 0
 
         for images, labels in train_loader:
+
+            # plt.figure()
+            # img1 = np.hstack([images[0][0].numpy(), images[0][1].numpy()])
+            # img2 = np.hstack([images[0][2].numpy(), images[0][3].numpy()])
+            # img3 = np.hstack([images[0][4].numpy(), images[0][5].numpy()])
+            # img4 = np.hstack([images[0][6].numpy(), images[0][7].numpy()])
+            # img = np.vstack([img1, img2, img3, img4])
+            # plt.imsave('sample.png', img)
+            # break
+
             images = images.to(device)
             labels = labels.to(device)
 

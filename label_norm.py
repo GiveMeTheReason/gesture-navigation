@@ -1,3 +1,5 @@
+# Change labels in dataset from [1, 14] to [0, 13]
+
 label_filename = './HandGestureDataset_SHREC2017/train_gestures.txt'
 out_filename = './HandGestureDataset_SHREC2017/train_gestures_norm.txt'
 
