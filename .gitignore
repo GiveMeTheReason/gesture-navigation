@@ -132,3 +132,10 @@ dmypy.json
 # Experimental
 testing/
 experiments/
+
+# Data
+data/
+
+# Keys
+*.key
+*.pem
