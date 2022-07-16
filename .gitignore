@@ -109,7 +109,6 @@ venv/
 ENV/
 env.bak/
 venv.bak/
-activate.sh
 
 # Spyder project settings
 .spyderproject
@@ -129,13 +128,5 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# Experimental
-testing/
-experiments/
-
 # Data
-data/
-
-# Keys
-*.key
-*.pem
+*data/
