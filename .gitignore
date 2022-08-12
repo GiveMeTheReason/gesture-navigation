@@ -129,5 +129,13 @@ dmypy.json
 .pyre/
 
 # Data
-*data/
-*outputs/
+data/
+dataset/
+outputs/
+*_shrec/
+
+# VS code
+.vscode
+
+# checkpoints
+*.pth

@@ -2,12 +2,10 @@ import torch.nn as nn
 
 
 class CrossEntropyLoss(nn.Module):
-    def __init__(self):
+    def __init__(self, weight=None):
         super().__init__()
 
-        self.loss = nn.CrossEntropyLoss()
+        self.loss = nn.CrossEntropyLoss(weight=weight)
 
     def forward(self, output, labels):
-        loss = self.loss(output, labels)
-
-        return loss
+        return self.loss(output, labels)

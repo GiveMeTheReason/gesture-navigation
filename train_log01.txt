@@ -1,0 +1,67 @@
+2022.11.08 18:28:02 | Training for 20 epochs started!
+Train set length: 63
+Test set length: 21
+2022.11.08 18:36:55 [Epoch: 01] Train acc: 0.9411 | loss: 3.3518
+confusion_matrix_train=tensor([[22700, 872, 584],
+[203,3015, 0],
+[209, 1,4168]], dtype=torch.int32)
+2022.11.08 18:39:38 [Epoch: 01] Valid acc: 0.7256 | loss: 25.0520
+confusion_matrix_val=tensor([[6240, 1608,192],
+[ 816,192,0],
+[ 264, 24, 1248]], dtype=torch.int32)
+2022.11.08 18:47:29 [Epoch: 02] Train acc: 0.9974 | loss: 0.2395
+confusion_matrix_train=tensor([[23079,40,11],
+[ 26,3848, 0],
+[7, 0,4741]], dtype=torch.int32)
+2022.11.08 18:49:50 [Epoch: 02] Valid acc: 0.7596 | loss: 32.9688
+confusion_matrix_val=tensor([[6792, 1680,336],
+[ 264,144,0],
+[ 264,0, 1104]], dtype=torch.int32)
+2022.11.08 18:57:41 [Epoch: 03] Train acc: 0.9968 | loss: 0.2435
+confusion_matrix_train=tensor([[23065,32,22],
+[ 25,3856, 0],
+[ 22, 0,4730]], dtype=torch.int32)
+2022.11.08 19:00:00 [Epoch: 03] Valid acc: 0.7483 | loss: 37.5537
+confusion_matrix_val=tensor([[6432, 1392,384],
+[ 528,432,0],
+[ 360,0, 1056]], dtype=torch.int32)
+2022.11.08 19:07:40 [Epoch: 04] Train acc: 0.9961 | loss: 0.2972
+confusion_matrix_train=tensor([[23063,52,24],
+[ 35,3836, 0],
+[ 14, 0,4728]], dtype=torch.int32)
+2022.11.08 19:09:51 [Epoch: 04] Valid acc: 0.7687 | loss: 39.5545
+confusion_matrix_val=tensor([[6888, 1680,336],
+[ 240,144,0],
+[ 192,0, 1104]], dtype=torch.int32)
+2022.11.08 19:17:08 [Epoch: 05] Train acc: 0.9979 | loss: 0.1780
+confusion_matrix_train=tensor([[23075,21, 9],
+[ 27,3867, 0],
+[ 10, 0,4743]], dtype=torch.int32)
+2022.11.08 19:19:17 [Epoch: 05] Valid acc: 0.7120 | loss: 47.3610
+confusion_matrix_val=tensor([[6720, 1680,768],
+[ 312,144,0],
+[ 288,0,672]], dtype=torch.int32)
+2022.11.08 19:26:35 [Epoch: 06] Train acc: 0.9996 | loss: 0.0334
+confusion_matrix_train=tensor([[23106, 0, 6],
+[1,3888, 0],
+[5, 0,4746]], dtype=torch.int32)
+2022.11.08 19:28:44 [Epoch: 06] Valid acc: 0.7710 | loss: 38.7104
+confusion_matrix_val=tensor([[6720, 1584,240],
+[ 456,240,0],
+[ 144,0, 1200]], dtype=torch.int32)
+2022.11.08 19:36:02 [Epoch: 07] Train acc: 0.9975 | loss: 0.1766
+confusion_matrix_train=tensor([[23076,34,10],
+[ 26,3854, 0],
+[ 10, 0,4742]], dtype=torch.int32)
+2022.11.08 19:38:10 [Epoch: 07] Valid acc: 0.7460 | loss: 46.5481
+confusion_matrix_val=tensor([[6528, 1584,312],
+[ 528,240,0],
+[ 264,0, 1128]], dtype=torch.int32)
+2022.11.08 19:45:57 [Epoch: 08] Train acc: 1.0000 | loss: 0.0036
+confusion_matrix_train=tensor([[23112, 0, 0],
+[0,3888, 0],
+[0, 0,4752]], dtype=torch.int32)
+2022.11.08 19:48:23 [Epoch: 08] Valid acc: 0.7596 | loss: 44.4297
+confusion_matrix_val=tensor([[6576, 1584,216],
+[ 504,240,0],
+[ 240,0, 1224]], dtype=torch.int32)
