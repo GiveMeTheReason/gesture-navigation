@@ -43,8 +43,8 @@ def main():
     label_map = {gesture: i for i, gesture in enumerate(GESTURES_SET, start=1)}
     label_map["no_gesture"] = 0
 
-    # frames = 5
-    frames = 1
+    frames = 10
+    # frames = 1
 
     batch_size = 24
     # max_workers = 2
@@ -52,7 +52,7 @@ def main():
 
     # resized_image_size = (720, 1280)
     # resized_image_size = (72, 128)
-    resized_image_size = (2*72, 2*128)  # (512, 512)
+    resized_image_size = (72, 128)  # (512, 512)
     base_fps = 30
     target_fps = 5
     # target_fps = 30
@@ -63,7 +63,7 @@ def main():
     weight = None
     # weight = torch.tensor([1., 10., 10., 10., 10.])
 
-    epochs = 20
+    epochs = 5
     validate_each_epoch = 1
 
 
@@ -79,8 +79,6 @@ def main():
     test_len = len(data_list) - train_len
     train_list, test_list = map(list, torch.utils.data.random_split(data_list, [train_len, test_len]))
 
-    # train_list = train_list[:21]
-    # test_list = test_list[:7]
     # train_list = train_list[:2]
     # test_list = test_list[:2]
 

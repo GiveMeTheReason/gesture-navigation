@@ -121,7 +121,7 @@ class CNN_Classifier(nn.Module):
         depth = image[:, 3:]
 
         self.queue_rgb = self.push_to_tensor_rgb(rgb)
-        self.queue_depth = self.push_to_tensor_rgb(depth)
+        self.queue_depth = self.push_to_tensor_depth(depth)
 
         rgb_features = self.cnn_model_rgb(self.queue_rgb)
         depth_features = self.cnn_model_depth(self.queue_depth)

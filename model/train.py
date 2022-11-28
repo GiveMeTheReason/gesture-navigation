@@ -28,7 +28,7 @@ def main():
 
     GESTURES_SET = (
         # "high",
-        # "start",
+        "start",
         "select",
         # "swipe_right",
         # "swipe_left",
@@ -56,11 +56,10 @@ def main():
     label_map = {gesture: i for i, gesture in enumerate(GESTURES_SET, start=1)}
     label_map["no_gesture"] = 0
 
-    # frames = 5
     frames = 1
+    # frames = 1
 
-    batch_size = 1
-    # max_workers = 2
+    batch_size = 8
     max_workers = 2
 
     # resized_image_size = (720, 1280)
@@ -85,7 +84,7 @@ def main():
     weight = None
     # weight = torch.tensor([1., 10., 10., 10., 10.])
 
-    epochs = 1
+    epochs = 20
     validate_each_epoch = 1
 
 
@@ -222,7 +221,7 @@ def main():
             for i in range(len(labels)):
                 confusion_matrix_train[pred[i], labels[i]] += 1
 
-            break
+            # break
 
         train_accuracy /= n
         train_loss /= len(train_list)
@@ -233,6 +232,8 @@ def main():
         with open(log_filename, 'a', encoding='utf-8') as log_file:
             log_file.write(msg)
         print(msg)
+
+        torch.save(model.state_dict(), checkpoint_path)
 
         if (epoch+1) % validate_each_epoch == 0:
             model.eval()
@@ -263,7 +264,7 @@ def main():
                     for i in range(len(val_labels)):
                         confusion_matrix_val[pred[i], val_labels[i]] += 1
 
-                    break
+                    # break
 
             accuracy /= n
             loss /= len(test_list)
@@ -274,8 +275,6 @@ def main():
             with open(log_filename, 'a', encoding='utf-8') as log_file:
                 log_file.write(msg)
             print(msg)
-
-            torch.save(model.state_dict(), checkpoint_path)
 
     visualizer.destroy_window()
 
