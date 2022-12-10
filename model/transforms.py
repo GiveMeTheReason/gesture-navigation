@@ -1,12 +1,12 @@
 import os
-import numpy as np
-import open3d as o3d
 
+import mrob
+import numpy as np
 import torch
 import torch.nn as nn
 import torchvision.transforms as transforms
 
-import mrob
+import open3d as o3d
 
 nearest = transforms.InterpolationMode.NEAREST
 
@@ -16,8 +16,9 @@ class NormalizeDepth():
         mask = tensor > 0
         tensor_min = tensor[mask].min()
         tensor_max = tensor.max()
-        tensor[mask] = 1 - (tensor[mask] - tensor_min) / (tensor_max - tensor_min)
-        return tensor
+        res_tensor = torch.zeros_like(tensor)
+        res_tensor[mask] = 1 - (tensor[mask] - tensor_min) / (tensor_max - tensor_min)
+        return res_tensor
 
 
 class Train_Transforms():
