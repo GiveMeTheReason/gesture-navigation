@@ -25,7 +25,7 @@ class ResNet_Block(nn.Module):
             stride=stride,
             padding=padding,
         )
-        self.bn1 = nn.BatchNorm2d(out_channels)
+        self.bn1 = nn.BatchNorm2d(in_channels)
 
         self.conv2 = nn.Conv2d(
             out_channels,
