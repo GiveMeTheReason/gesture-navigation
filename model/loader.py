@@ -69,15 +69,15 @@ class Hand_Gestures_Dataset(IterableDataset):
         batch_idx: int,
     ):
         label = self.label_map[self.get_gesture(path)]
-        with open(os.path.join(path, "label.txt"), "r") as label_file:
+        with open(os.path.join(path, 'label.txt'), 'r') as label_file:
             label_start, label_finish = map(int, label_file.readline().strip().split())
 
         current_frame = max(0, self.base_fps - self.target_fps)
 
         if self.data_type == AllowedDatasets.PCD:
-            paths = sorted(glob.glob(os.path.join(path, "*.pcd")))
+            paths = sorted(glob.glob(os.path.join(path, '*.pcd')))
         elif self.data_type == AllowedDatasets.PROXY:
-            paths = sorted(glob.glob(os.path.join(path, "*.jpg")))
+            paths = sorted(glob.glob(os.path.join(path, '*.jpg')))
 
         for i, pc_path in enumerate(paths):
             current_frame += self.target_fps

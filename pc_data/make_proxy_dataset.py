@@ -9,33 +9,33 @@ import numpy as np
 import open3d as o3d
 
 GESTURES_SET = (
-    # "high",
-    "start",
-    "select",
-    # "swipe_right",
-    # "swipe_left",
+    # 'high',
+    'start',
+    'select',
+    # 'swipe_right',
+    # 'swipe_left',
 )
 
 DATA_DIR = os.path.join(
-    os.path.expanduser("~"),
-    "personal",
-    "gestures_dataset",
-    "HuaweiGesturesDataset",
-    "undistorted"
+    os.path.expanduser('~'),
+    'personal',
+    'gestures_dataset',
+    'HuaweiGesturesDataset',
+    'undistorted'
 )
 
-CAMERAS_DIR = ("cam_center", "cam_right", "cam_left")
+CAMERAS_DIR = ('cam_center', 'cam_right', 'cam_left')
 
-CALIBRATION_DIR = os.path.join("pc_data", "calib_params")
+CALIBRATION_DIR = os.path.join('pc_data', 'calib_params')
 CALIBRATION_INTRINSIC = {
-    "cam_center": "1m.json",
-    "cam_right": "2s.json",
-    "cam_left": "9s.json",
+    'cam_center': '1m.json',
+    'cam_right': '2s.json',
+    'cam_left': '9s.json',
 }
 CALIBRATION_EXTRINSIC = {
-    ("cam_center", "cam_right"): os.path.join("1-2", "calibration_blob.json"),
-    ("cam_center", "cam_left"): os.path.join("1-9", "calibration_blob.json"),
-    ("cam_right", "cam_left"): os.path.join("2-9", "calibration_blob.json"),
+    ('cam_center', 'cam_right'): os.path.join('1-2', 'calibration_blob.json'),
+    ('cam_center', 'cam_left'): os.path.join('1-9', 'calibration_blob.json'),
+    ('cam_right', 'cam_left'): os.path.join('2-9', 'calibration_blob.json'),
 }
 
 main_camera_index = 0
@@ -62,14 +62,14 @@ def get_intrinsics(filenames):
         with open(filename) as json_file:
             data = json.load(json_file)
 
-        for j, camera in enumerate(("color", "depth")):
+        for j, camera in enumerate(('color', 'depth')):
             intrinsics[2 * i + j] = [
-                data[f"{camera}_camera"]["resolution_width"],
-                data[f"{camera}_camera"]["resolution_height"],
-                data[f"{camera}_camera"]["intrinsics"]["parameters"]["parameters_as_dict"]["fx"],
-                data[f"{camera}_camera"]["intrinsics"]["parameters"]["parameters_as_dict"]["fy"],
-                data[f"{camera}_camera"]["intrinsics"]["parameters"]["parameters_as_dict"]["cx"],
-                data[f"{camera}_camera"]["intrinsics"]["parameters"]["parameters_as_dict"]["cy"],
+                data[f'{camera}_camera']['resolution_width'],
+                data[f'{camera}_camera']['resolution_height'],
+                data[f'{camera}_camera']['intrinsics']['parameters']['parameters_as_dict']['fx'],
+                data[f'{camera}_camera']['intrinsics']['parameters']['parameters_as_dict']['fy'],
+                data[f'{camera}_camera']['intrinsics']['parameters']['parameters_as_dict']['cx'],
+                data[f'{camera}_camera']['intrinsics']['parameters']['parameters_as_dict']['cy'],
             ]
 
     return intrinsics
@@ -252,16 +252,16 @@ def main():
 
     counter = 0
     for gesture in GESTURES_SET:
-        counter += len(glob.glob(os.path.join(DATA_DIR, "G*", gesture, "*", "trial1")))
-    print(f"Total count of trials: {counter}")
-    print(f"Estimated memory usage: {round(counter * 120 / 1024, 2)} GB")
-    print(f"Estimated processing time: {round(counter * 120 / 7200, 2)} hours")
+        counter += len(glob.glob(os.path.join(DATA_DIR, 'G*', gesture, '*', 'trial1')))
+    print(f'Total count of trials: {counter}')
+    print(f'Estimated memory usage: {round(counter * 120 / 1024, 2)} GB')
+    print(f'Estimated processing time: {round(counter * 120 / 7200, 2)} hours')
 
 
-    for participant in glob.glob(os.path.join(DATA_DIR, "G*")):
+    for participant in glob.glob(os.path.join(DATA_DIR, 'G*')):
         for gesture in GESTURES_SET:
-            for hand in glob.glob(os.path.join(participant, gesture, "*")):
-                for trial in glob.glob(os.path.join(hand, "*")):
+            for hand in glob.glob(os.path.join(participant, gesture, '*')):
+                for trial in glob.glob(os.path.join(hand, '*')):
                     images_paths = [sorted(glob.glob(os.path.join(trial, camera, type, '*')))
                                     for camera, type in itertools.product(CAMERAS_DIR, ('color', 'depth'))]
 
@@ -271,11 +271,11 @@ def main():
                     mapped_indexes = map_nearest(images_paths, main_camera_index)
 
                     save_dir = os.path.join(
-                        os.path.expanduser("~"),
-                        "personal",
-                        "gestures_navigation",
-                        "pc_data",
-                        "dataset",
+                        os.path.expanduser('~'),
+                        'personal',
+                        'gestures_navigation',
+                        'pc_data',
+                        'dataset',
                         os.path.split(participant)[-1],
                         gesture,
                         os.path.split(hand)[-1],
@@ -310,7 +310,7 @@ def main():
                         o3d.io.write_point_cloud(
                             os.path.join(
                                 save_dir,
-                                f"{str(group[0]).zfill(5)}.pcd"
+                                f'{str(group[0]).zfill(5)}.pcd'
                             ),
                             pc_concatenated,
                             compressed=True
@@ -318,5 +318,5 @@ def main():
                     break
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

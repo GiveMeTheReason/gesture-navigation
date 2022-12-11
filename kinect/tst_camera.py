@@ -38,11 +38,11 @@ transformation = k4a.Transformation(calibration)
 
 
 GESTURES_SET = (
-    # "high",
-    "start",
-    "select",
-    # "swipe_right",
-    # "swipe_left",
+    # 'high',
+    'start',
+    'select',
+    # 'swipe_right',
+    # 'swipe_left',
 )
 
 resized_image_size = (72, 128)
@@ -52,7 +52,7 @@ target_fps = 5
 # target_fps = 30
 
 label_map = {gesture: i for i, gesture in enumerate(GESTURES_SET, start=1)}
-label_map["no_gesture"] = 0
+label_map['no_gesture'] = 0
 
 batch_size = 8
 

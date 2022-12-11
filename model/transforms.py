@@ -305,7 +305,7 @@ class RGB_Depth_To_RGBD():
 
     def __call__(self, pc_path: str, batch_idx: int) -> torch.Tensor:
         pc_path_jpg = pc_path
-        pc_path_png = os.path.join(os.path.splitext(pc_path)[0] + ".png")
+        pc_path_png = os.path.join(os.path.splitext(pc_path)[0] + '.png')
 
         image_rgb = o3d.io.read_image(pc_path_jpg)
         image_depth = o3d.io.read_image(pc_path_png)

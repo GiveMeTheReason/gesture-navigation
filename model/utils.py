@@ -25,14 +25,14 @@ def get_intrinsics(filenames: tp.List[str]) -> np.ndarray:
         with open(filename) as json_file:
             data = json.load(json_file)
 
-        for j, camera in enumerate(("color", "depth")):
+        for j, camera in enumerate(('color', 'depth')):
             intrinsics[2 * i + j] = [
-                data[f"{camera}_camera"]["resolution_width"],
-                data[f"{camera}_camera"]["resolution_height"],
-                data[f"{camera}_camera"]["intrinsics"]["parameters"]["parameters_as_dict"]["fx"],
-                data[f"{camera}_camera"]["intrinsics"]["parameters"]["parameters_as_dict"]["fy"],
-                data[f"{camera}_camera"]["intrinsics"]["parameters"]["parameters_as_dict"]["cx"],
-                data[f"{camera}_camera"]["intrinsics"]["parameters"]["parameters_as_dict"]["cy"],
+                data[f'{camera}_camera']['resolution_width'],
+                data[f'{camera}_camera']['resolution_height'],
+                data[f'{camera}_camera']['intrinsics']['parameters']['parameters_as_dict']['fx'],
+                data[f'{camera}_camera']['intrinsics']['parameters']['parameters_as_dict']['fy'],
+                data[f'{camera}_camera']['intrinsics']['parameters']['parameters_as_dict']['cx'],
+                data[f'{camera}_camera']['intrinsics']['parameters']['parameters_as_dict']['cy'],
             ]
 
     return intrinsics

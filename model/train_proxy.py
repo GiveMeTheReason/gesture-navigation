@@ -7,6 +7,7 @@ from datetime import datetime
 import numpy as np
 import torch
 import torch.utils.data
+from loader import AllowedDatasets
 from loader import Hand_Gestures_Dataset
 from loader import MultiStreamDataLoader
 from loader import split_datasets
@@ -17,30 +18,30 @@ from transforms import RGB_Depth_To_RGBD
 
 def main():
     exp_id = '01'
-    log_filename = f"train_log{exp_id}.txt"
-    checkpoint_path = f"checkpoint{exp_id}.pth"
+    log_filename = f'train_log{exp_id}.txt'
+    checkpoint_path = f'checkpoint{exp_id}.pth'
 
     seed = 0
     device = 'cpu' if not torch.cuda.is_available() else 'cuda'
 
     GESTURES_SET = (
-        # "high",
-        "start",
-        "select",
-        # "swipe_right",
-        # "swipe_left",
+        # 'high',
+        'start',
+        'select',
+        # 'swipe_right',
+        # 'swipe_left',
     )
 
     DATA_DIR = os.path.join(
-        os.path.expanduser("~"),
-        "personal",
-        "gestures_navigation",
-        "pc_data",
-        "dataset"
+        os.path.expanduser('~'),
+        'personal',
+        'gestures_navigation',
+        'pc_data',
+        'dataset'
     )
 
     label_map = {gesture: i for i, gesture in enumerate(GESTURES_SET, start=1)}
-    label_map["no_gesture"] = 0
+    label_map['no_gesture'] = 0
 
     frames = 10
     # frames = 1
@@ -71,7 +72,7 @@ def main():
     torch.manual_seed(seed)
 
     data_list = [
-        d for d in glob.glob(os.path.join(DATA_DIR, "G*/*/*/*"))
+        d for d in glob.glob(os.path.join(DATA_DIR, 'G*/*/*/*'))
         if d.split(os.path.sep)[-3] in GESTURES_SET
     ]
     train_len = int(0.75 * len(data_list))
@@ -94,7 +95,7 @@ def main():
         transforms=rgb_depth_to_rgb,
         base_fps=base_fps,
         target_fps=target_fps,
-        data_type='proxy',
+        data_type=AllowedDatasets.PCD,
     )
     train_loader = MultiStreamDataLoader(train_datasets, image_size=resized_image_size)
 
@@ -107,7 +108,7 @@ def main():
         transforms=rgb_depth_to_rgb,
         base_fps=base_fps,
         target_fps=target_fps,
-        data_type='proxy',
+        data_type=AllowedDatasets.PROXY,
     )
     test_loader = MultiStreamDataLoader(test_datasets, image_size=resized_image_size)
 
@@ -126,7 +127,7 @@ def main():
     loss_func = CrossEntropyLoss(weight=weight)
     loss_func.to(device)
 
-    time = datetime.now().strftime("%Y.%m.%d %H:%M:%S")
+    time = datetime.now().strftime('%Y.%m.%d %H:%M:%S')
     msg = f'{time} | Training for {epochs} epochs started!\n\
         Train set length: {len(train_list)}\n\
         Test set length: {len(test_list)}\n'.replace('  ', '')
@@ -151,8 +152,8 @@ def main():
             #     continue
 
             # for i, img in enumerate(pc_paths):
-            #     plt.imsave(f"{i}_color.png", img[:3].permute(1, 2, 0).numpy())
-            #     plt.imsave(f"{i}_depth.png", img[-1].numpy())
+            #     plt.imsave(f'{i}_color.png', img[:3].permute(1, 2, 0).numpy())
+            #     plt.imsave(f'{i}_depth.png', img[-1].numpy())
             counter += 1
 
             images = images.to(device)
@@ -165,7 +166,7 @@ def main():
             loss.backward()
             optimizer.step()
 
-            print(f"{datetime.now().strftime('%Y.%m.%d %H:%M:%S')} TRAIN\n{epoch=}, {counter=}\n{prediction=}\n{labels=}")
+            print(f'{datetime.now().strftime("%Y.%m.%d %H:%M:%S")} TRAIN\n{epoch=}, {counter=}\n{prediction=}\n{labels=}')
 
             prediction_probs, prediction_labels = prediction.max(1)
             train_accuracy += (prediction_labels == labels).sum().float()
@@ -181,7 +182,7 @@ def main():
         train_accuracy /= n
         train_loss /= len(train_list)
 
-        time = datetime.now().strftime("%Y.%m.%d %H:%M:%S")
+        time = datetime.now().strftime('%Y.%m.%d %H:%M:%S')
         msg = f'{time} [Epoch: {epoch+1:02}] Train acc: {train_accuracy:.4f} | loss: {train_loss:.4f}\n\
             {confusion_matrix_train=}\n'.replace('  ', '')
         with open(log_filename, 'a', encoding='utf-8') as log_file:
@@ -207,7 +208,7 @@ def main():
                     prediction = model(val_images)
                     prediction_probs, prediction_labels = prediction.max(1)
 
-                    print(f"{datetime.now().strftime('%Y.%m.%d %H:%M:%S')} VAL\n{epoch=}, {counter=}\n{prediction=}\n{val_labels=}")
+                    print(f'{datetime.now().strftime("%Y.%m.%d %H:%M:%S")} VAL\n{epoch=}, {counter=}\n{prediction=}\n{val_labels=}')
 
                     accuracy += (prediction_labels == val_labels).sum().float()
                     loss += loss_func(prediction, val_labels).item()
@@ -222,7 +223,7 @@ def main():
             accuracy /= n
             loss /= len(test_list)
 
-            time = datetime.now().strftime("%Y.%m.%d %H:%M:%S")
+            time = datetime.now().strftime('%Y.%m.%d %H:%M:%S')
             msg = f'{time} [Epoch: {epoch+1:02}] Valid acc: {accuracy:.4f} | loss: {loss:.4f}\n\
                 {confusion_matrix_val=}\n'.replace('  ', '')
             with open(log_filename, 'a', encoding='utf-8') as log_file:
