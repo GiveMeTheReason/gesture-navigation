@@ -63,7 +63,7 @@ model = CNN_Classifier(
     resized_image_size,
     frames=frames,
     batch_size=batch_size,
-    num_classes=len(label_map.keys()),
+    num_classes=len(label_map),
 )
 torch_device = 'cpu' if not torch.cuda.is_available() else 'cuda'
 model.to(torch_device)

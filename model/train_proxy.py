@@ -17,7 +17,7 @@ from transforms import RGB_Depth_To_RGBD
 
 
 def main():
-    exp_id = '01'
+    exp_id = '02'
     log_filename = f'train_log{exp_id}.txt'
     checkpoint_path = f'checkpoint{exp_id}.pth'
 
@@ -39,11 +39,16 @@ def main():
         'pc_data',
         'dataset'
     )
+    # DATA_DIR = os.path.join(
+    #     'D:\\',
+    #     'GesturesNavigation',
+    #     'dataset',
+    # )
 
     label_map = {gesture: i for i, gesture in enumerate(GESTURES_SET, start=1)}
-    label_map['no_gesture'] = 0
+    # label_map['no_gesture'] = 0
 
-    frames = 10
+    frames = 1
     # frames = 1
 
     batch_size = 24
@@ -79,8 +84,8 @@ def main():
     test_len = len(data_list) - train_len
     train_list, test_list = map(list, torch.utils.data.random_split(data_list, [train_len, test_len]))
 
-    # train_list = train_list[:2]
-    # test_list = test_list[:2]
+    # train_list = train_list[:]
+    # test_list = test_list[:]
 
     rgb_depth_to_rgb = RGB_Depth_To_RGBD(
         resized_image_size,
@@ -95,7 +100,7 @@ def main():
         transforms=rgb_depth_to_rgb,
         base_fps=base_fps,
         target_fps=target_fps,
-        data_type=AllowedDatasets.PCD,
+        data_type=AllowedDatasets.PROXY,
     )
     train_loader = MultiStreamDataLoader(train_datasets, image_size=resized_image_size)
 
@@ -116,7 +121,7 @@ def main():
         resized_image_size,
         frames=frames,
         batch_size=batch_size,
-        num_classes=len(label_map.keys()),
+        num_classes=len(label_map),
     )
     model.to(device)
 
@@ -142,7 +147,7 @@ def main():
         train_loss = 0
         n = 0
 
-        confusion_matrix_train = torch.zeros((len(label_map.keys()), len(label_map.keys())), dtype=torch.int)
+        confusion_matrix_train = torch.zeros((len(label_map), len(label_map)), dtype=torch.int)
 
         counter = 0
         for images, labels in train_loader:
@@ -195,7 +200,7 @@ def main():
             loss = 0
             n = 0
 
-            confusion_matrix_val = torch.zeros((len(label_map.keys()), len(label_map.keys())), dtype=torch.int)
+            confusion_matrix_val = torch.zeros((len(label_map), len(label_map)), dtype=torch.int)
 
             counter = 0
             with torch.no_grad():

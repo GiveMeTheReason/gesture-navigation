@@ -43,6 +43,11 @@ def main():
         'pc_data',
         'dataset'
     )
+    # DATA_DIR = os.path.join(
+    #     'D:\\',
+    #     'GesturesNavigation',
+    #     'dataset',
+    # )
 
 
     CAMERAS_DIR = ('cam_center',)
@@ -61,7 +66,7 @@ def main():
     frames = 1
     # frames = 1
 
-    batch_size = 8
+    batch_size = 12
     max_workers = 2
 
     # resized_image_size = (720, 1280)
@@ -80,11 +85,12 @@ def main():
     loc = np.array([0., 0., 0., 0., 0., 0.])
     scale = np.array([np.pi/24, np.pi/18, np.pi/48, 0.2, 0.1, 0.1]) / 1.5
 
-    lr = 1e-3
-    weight_decay = 0
-    # weight_decay = 1e-5
-    weight = None
+    lr = 1e-4
+    # weight_decay = 0
+    weight_decay = 1e-5
+    # weight = None
     # weight = torch.tensor([1., 10., 10., 10., 10.])
+    weight = torch.tensor([4., 1., 1.])
 
     epochs = 20
     validate_each_epoch = 1
@@ -132,8 +138,8 @@ def main():
 
     # train_list = train_list[:21]
     # test_list = test_list[:7]
-    # train_list = train_list[:2]
-    # test_list = test_list[:2]
+    # train_list = train_list[:1]
+    # test_list = test_list[:1]
 
     train_datasets = split_datasets(
         Hand_Gestures_Dataset,
@@ -176,7 +182,7 @@ def main():
         resized_image_size,
         frames=frames,
         batch_size=batch_size,
-        num_classes=len(label_map.keys()),
+        num_classes=len(label_map),
     )
     model.to(device)
 
@@ -202,7 +208,7 @@ def main():
         train_loss = 0
         n = 0
 
-        confusion_matrix_train = torch.zeros((len(label_map.keys()), len(label_map.keys())), dtype=torch.int)
+        confusion_matrix_train = torch.zeros((len(label_map), len(label_map)), dtype=torch.int)
 
         counter = 0
         for images, labels in train_loader:
@@ -257,7 +263,7 @@ def main():
             loss = 0
             n = 0
 
-            confusion_matrix_val = torch.zeros((len(label_map.keys()), len(label_map.keys())), dtype=torch.int)
+            confusion_matrix_val = torch.zeros((len(label_map), len(label_map)), dtype=torch.int)
 
             counter = 0
             with torch.no_grad():
