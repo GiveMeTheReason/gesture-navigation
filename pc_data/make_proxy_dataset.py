@@ -5,8 +5,8 @@ import os
 import re
 
 import numpy as np
-import open3d as o3d
 
+import open3d as o3d
 
 GESTURES_SET = (
     # "high",
@@ -264,7 +264,7 @@ def main():
                 for trial in glob.glob(os.path.join(hand, "*")):
                     images_paths = [sorted(glob.glob(os.path.join(trial, camera, type, '*')))
                                     for camera, type in itertools.product(CAMERAS_DIR, ('color', 'depth'))]
-                    
+
                     if not images_paths:
                         continue
 
@@ -281,7 +281,7 @@ def main():
                         os.path.split(hand)[-1],
                         os.path.split(trial)[-1]
                     )
-                    
+
                     if not os.path.exists(save_dir):
                         os.makedirs(save_dir)
 
@@ -301,12 +301,12 @@ def main():
                             intrinsics[::2],
                             np.concatenate([[np.eye(4)], extrinsics[:len(CAMERAS_DIR) - 1]])
                         )
-                        
+
                         pc_concatenated = concatenate_point_clouds(point_clouds)
-                        
+
                         # Filter outliers
                         pc_concatenated, _ = pc_concatenated.remove_radius_outlier(10, 0.01)
-                        
+
                         o3d.io.write_point_cloud(
                             os.path.join(
                                 save_dir,

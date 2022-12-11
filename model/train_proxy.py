@@ -1,19 +1,18 @@
-import os
 import glob
 import json
+import os
 import random
+from datetime import datetime
 
 import numpy as np
-
 import torch
 import torch.utils.data
-
-from loader import split_datasets, Hand_Gestures_Dataset, MultiStreamDataLoader
+from loader import Hand_Gestures_Dataset
+from loader import MultiStreamDataLoader
+from loader import split_datasets
 from loss import CrossEntropyLoss
 from model_cnn import CNN_Classifier
 from transforms import RGB_Depth_To_RGBD
-
-from datetime import datetime
 
 
 def main():

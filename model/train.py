@@ -1,21 +1,22 @@
-import os
 import glob
 import json
+import os
 import random
+from datetime import datetime
 
 import numpy as np
-import open3d as o3d
-
 import torch
 import torch.utils.data
-
-from loader import split_datasets, Hand_Gestures_Dataset, MultiStreamDataLoader
+from loader import Hand_Gestures_Dataset
+from loader import MultiStreamDataLoader
+from loader import split_datasets
 from loss import CrossEntropyLoss
 from model_cnn import CNN_Classifier
 from transforms import PointCloud_To_RGBD
+from transforms import RGB_Depth_To_RGBD
 from utils import get_intrinsics
 
-from datetime import datetime
+import open3d as o3d
 
 
 def main():
@@ -116,6 +117,9 @@ def main():
         scale=scale,
         image_size=resized_image_size,
     )
+    rgb_depth_to_rgb = RGB_Depth_To_RGBD(
+        resized_image_size,
+    )
 
     data_list = [
         d for d in glob.glob(os.path.join(DATA_DIR, "G*/*/*/*"))
@@ -143,16 +147,27 @@ def main():
     )
     train_loader = MultiStreamDataLoader(train_datasets, image_size=resized_image_size)
 
+    # test_datasets = split_datasets(
+    #     Hand_Gestures_Dataset,
+    #     batch_size=batch_size,
+    #     max_workers=max_workers,
+    #     path_list=test_list,
+    #     label_map=label_map,
+    #     transforms=pc_to_rgb,
+    #     base_fps=base_fps,
+    #     target_fps=target_fps,
+    #     data_type='pcd',
+    # )
     test_datasets = split_datasets(
         Hand_Gestures_Dataset,
         batch_size=batch_size,
         max_workers=max_workers,
         path_list=test_list,
         label_map=label_map,
-        transforms=pc_to_rgb,
+        transforms=rgb_depth_to_rgb,
         base_fps=base_fps,
         target_fps=target_fps,
-        data_type='pcd',
+        data_type='proxy',
     )
     test_loader = MultiStreamDataLoader(test_datasets, image_size=resized_image_size)
 

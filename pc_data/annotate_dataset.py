@@ -3,7 +3,6 @@ import os
 
 import open3d as o3d
 
-
 GESTURES_SET = (
     # "high",
     "start",
@@ -46,7 +45,7 @@ def main():
             for hand in glob.glob(os.path.join(participant, gesture, "*")):
                 for trial in glob.glob(os.path.join(hand, "*")):
                     pc_paths = sorted(glob.glob(os.path.join(trial, "*.pcd")))
-                    
+
                     centers = []
 
                     for pc_path in pc_paths:
@@ -60,7 +59,7 @@ def main():
                         if centers[i] < threshold_start:
                             start = i
                             break
-                    
+
                     for i in range(len(centers) - 1, -1, -1):
                         if centers[i] < threshold_finish:
                             finish = i

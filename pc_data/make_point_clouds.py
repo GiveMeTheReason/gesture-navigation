@@ -5,8 +5,8 @@ import os
 import re
 
 import numpy as np
-import open3d as o3d
 
+import open3d as o3d
 
 GESTURES_SET = (
     # "high",
@@ -137,7 +137,7 @@ def map_nearest(cameras_filenames, main_camera_index=0):
     nearest (np.ndarray[int]): indexes of filenames that are nearest to i frame from main camera
     """
     assert all(cameras_filenames)
-    
+
     nearest = np.zeros((len(cameras_filenames[main_camera_index]), len(cameras_filenames)), dtype=np.int64)
     pointers = np.zeros(len(cameras_filenames), dtype=np.int64)
 
@@ -153,9 +153,9 @@ def map_nearest(cameras_filenames, main_camera_index=0):
                     now - now_camera > int(filenames[pointer + 1][patterns[j, 0]:patterns[j, 1]]) - now:
                 pointer += 1
                 now_camera = int(filenames[pointer][patterns[j, 0]:patterns[j, 1]])
-            
+
             nearest[i, j] = pointer
-    
+
     return nearest
 
 
@@ -176,7 +176,7 @@ def get_rgbd_images(images_paths, depth_scale=1000, depth_trunc=5.0):
     """
     assert all(images_paths)
     assert len(images_paths) % 2 == 0
-    
+
     rgbd_images = [[] for _ in range(len(images_paths) // 2)]
 
     for i in range(len(rgbd_images)):
@@ -187,7 +187,7 @@ def get_rgbd_images(images_paths, depth_scale=1000, depth_trunc=5.0):
             depth_trunc=depth_trunc,
             convert_rgb_to_intensity=False
         )
-    
+
     return rgbd_images
 
 
@@ -221,7 +221,7 @@ def create_point_clouds(rgbd_images, intrinsics, extrinsics):
             extrinsic=np.linalg.inv(extrinsics[i]),
             project_valid_depth_only=True
         )
-    
+
     return point_clouds
 
 
@@ -236,7 +236,7 @@ def concatenate_point_clouds(point_clouds):
     concatenated_point_cloud (open3d.geometry.PointCloud): concatenated point cloud
     """
     concatenated_point_cloud = np.sum(point_clouds)
-    
+
     return concatenated_point_cloud
 
 
@@ -264,7 +264,7 @@ def main():
                 for trial in glob.glob(os.path.join(hand, "*")):
                     images_paths = [sorted(glob.glob(os.path.join(trial, camera, type, '*')))
                                     for camera, type in itertools.product(CAMERAS_DIR, ('color', 'depth'))]
-                    
+
                     if not images_paths:
                         continue
 
@@ -281,7 +281,7 @@ def main():
                         os.path.split(hand)[-1],
                         os.path.split(trial)[-1]
                     )
-                    
+
                     if not os.path.exists(save_dir):
                         os.makedirs(save_dir)
 
@@ -289,7 +289,7 @@ def main():
                         paths = [''] * len(group)
                         for i, index in enumerate(group):
                             paths[i] = images_paths[i][index]
-                        
+
                         rgbd_images = get_rgbd_images(
                             paths,
                             depth_scale=1000,
@@ -301,12 +301,12 @@ def main():
                             intrinsics[::2],
                             np.concatenate([[np.eye(4)], extrinsics[:len(CAMERAS_DIR) - 1]])
                         )
-                        
+
                         pc_concatenated = concatenate_point_clouds(point_clouds)
-                        
+
                         # Filter outliers
                         pc_concatenated, _ = pc_concatenated.remove_radius_outlier(10, 0.01)
-                        
+
                         o3d.io.write_point_cloud(
                             os.path.join(
                                 save_dir,

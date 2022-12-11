@@ -1,8 +1,10 @@
 import json
+import typing as tp
+
 import numpy as np
 
 
-def get_intrinsics(filenames):
+def get_intrinsics(filenames: tp.List[str]) -> np.ndarray:
     """
     Returns a list [2*N x 6] of calibration parameters for color and depth cameras
     in form of open3d.camera.PinholeCameraIntrinsic from JSON files

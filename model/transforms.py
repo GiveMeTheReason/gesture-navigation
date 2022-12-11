@@ -1,4 +1,5 @@
 import os
+import typing as tp
 
 import mrob
 import numpy as np
@@ -8,11 +9,12 @@ import torchvision.transforms as transforms
 
 import open3d as o3d
 
+image_sizeT = tp.Tuple[int, int]
 nearest = transforms.InterpolationMode.NEAREST
 
 
 class NormalizeDepth():
-    def __call__(self, tensor):
+    def __call__(self, tensor: torch.Tensor) -> torch.Tensor:
         mask = tensor > 0
         tensor_min = tensor[mask].min()
         tensor_max = tensor.max()
@@ -22,45 +24,68 @@ class NormalizeDepth():
 
 
 class Train_Transforms():
-    def __init__(self, target_size=(72, 96)):
+    def __init__(
+        self,
+        target_size: image_sizeT = (72, 96),
+    ) -> None:
         self.transforms = transforms.Compose([
                 # transforms.ToTensor(),
-                transforms.Resize(target_size, interpolation=nearest),
-                transforms.RandomHorizontalFlip(p=0.5),
-                transforms.RandomAffine(degrees=30, translate=(0.3, 0.3), scale=(0.7, 1.3), interpolation=nearest),
-                transforms.RandomPerspective(distortion_scale=0.4, p=0.5, interpolation=nearest),
+                transforms.Resize(
+                    target_size,
+                    interpolation=nearest,
+                ),
+                transforms.RandomHorizontalFlip(
+                    p=0.5,
+                ),
+                transforms.RandomAffine(
+                    degrees=30,
+                    translate=(0.3, 0.3),
+                    scale=(0.7, 1.3),
+                    interpolation=nearest,
+                ),
+                transforms.RandomPerspective(
+                    distortion_scale=0.4,
+                    p=0.5,
+                    interpolation=nearest,
+                ),
                 NormalizeDepth()
             ])
 
-    def __call__(self, tensor):
+    def __call__(self, tensor: torch.Tensor) -> torch.Tensor:
         return self.transforms(tensor)
 
 
 class Test_Transforms():
-    def __init__(self, target_size=(72, 96)):
+    def __init__(
+        self,
+        target_size: image_sizeT = (72, 96),
+    ) -> None:
         self.transforms = transforms.Compose([
                 # transforms.ToTensor(),
-                transforms.Resize(target_size, interpolation=nearest),
+                transforms.Resize(
+                    target_size,
+                    interpolation=nearest,
+                ),
                 NormalizeDepth()
             ])
 
-    def __call__(self, tensor):
+    def __call__(self, tensor: torch.Tensor) -> torch.Tensor:
         return self.transforms(tensor)
 
 
 class PointCloud_To_RGBD():
     def __init__(
         self,
-        batch_size,
-        intrinsics,
-        visualizer,
-        render_option_path,
-        angle=0.0,
-        z_target=1.0,
-        loc=0.0,
-        scale=1.0,
-        image_size=None,
-    ):
+        batch_size: int,
+        intrinsics: tp.List[float],
+        visualizer: o3d.visualization.Visualizer,
+        render_option_path: str,
+        angle: float = 0.0,
+        z_target: float = 1.0,
+        loc: float = 0.0,
+        scale: float = 1.0,
+        image_size: tp.Optional[image_sizeT] = None,
+    ) -> None:
         self.intrinsics = intrinsics
         self.visualizer = visualizer
         self.render_option_path = render_option_path
@@ -73,7 +98,7 @@ class PointCloud_To_RGBD():
         self.resize = transforms.Resize(image_size, transforms.InterpolationMode.NEAREST) if image_size is not None else image_size
 
         self.intrinsic_matrix = self.get_intrinsic_matrix(*self.intrinsics[2:])
-        
+
         self.base_extrinsic_matrix = self.get_extrinsic_matrix(self.angle, self.z_target)
         self.extrinsic_matrix = self.base_extrinsic_matrix
 
@@ -94,7 +119,13 @@ class PointCloud_To_RGBD():
 
         self.view_control = self.visualizer.get_view_control()
 
-    def get_intrinsic_matrix(self, fx, fy, cx, cy):
+    def get_intrinsic_matrix(
+        self,
+        fx: float,
+        fy: float,
+        cx: float,
+        cy: float,
+    ) -> np.ndarray:
         """
         Returns an intrinsic matrix from list of parameters
 
@@ -116,7 +147,11 @@ class PointCloud_To_RGBD():
 
         return intrinsic_matrix
 
-    def get_extrinsic_matrix(self, angle, z_target):
+    def get_extrinsic_matrix(
+        self,
+        angle: float,
+        z_target: float,
+    ) -> np.ndarray:
         """
         Returns an extrinsic matrix for new camera position from list of parameters
         Camera position calculates as rotation around X-axis shifted by Z on z_target
@@ -138,11 +173,16 @@ class PointCloud_To_RGBD():
 
         return extrinsic_matrix
 
-    def randomize_extrinsic(self, extrinsic_matrix, loc=0.0, scale=1.0):
+    def randomize_extrinsic(
+        self,
+        extrinsic_matrix: np.ndarray,
+        loc: float = 0.0,
+        scale: float = 1.0,
+    ) -> np.ndarray:
         """
         Returns matrix with applied random normal (mean=0, var=var)
         variations on state vector [th1, th2, th3, x, y, z] using mrob
-        
+
         Parameters:
         extrinsic_matrix (np.ndarray[float]): extrinsic parameters of camera [4 x 4]
         loc (float or Sequence[float]): mean, can be array of 6 floats
@@ -159,14 +199,14 @@ class PointCloud_To_RGBD():
         return randomized_extrinsic_matrix
 
     @property
-    def refresh(self):
+    def refresh(self) -> None:
         self.extrinsic_matrix = self.randomize_extrinsic(
             self.base_extrinsic_matrix, self.loc, self.scale
         )
 
         self.camera.extrinsic = np.linalg.inv(self.extrinsic_matrix)
 
-    def __call__(self, pc_path, batch_idx):
+    def __call__(self, pc_path: str, batch_idx: int) -> torch.Tensor:
         if os.path.dirname(pc_path) != self.prev_path[batch_idx]:
             self.prev_path[batch_idx] = os.path.dirname(pc_path)
             self.extrinsics[batch_idx] = self.randomize_extrinsic(
@@ -257,13 +297,13 @@ class PointCloud_To_RGBD():
 class RGB_Depth_To_RGBD():
     def __init__(
         self,
-        image_size=None,
-    ):
+        image_size: tp.Optional[image_sizeT] = None,
+    ) -> None:
         self.resize = transforms.Resize(
             image_size, transforms.InterpolationMode.NEAREST
         ) if image_size is not None else image_size
 
-    def __call__(self, pc_path, batch_idx):
+    def __call__(self, pc_path: str, batch_idx: int) -> torch.Tensor:
         pc_path_jpg = pc_path
         pc_path_png = os.path.join(os.path.splitext(pc_path)[0] + ".png")
 
