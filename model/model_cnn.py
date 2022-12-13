@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 
 
-class ResNet_Block(nn.Module):
+class ResNetBlock(nn.Module):
     def __init__(
         self,
         in_channels: int,
@@ -65,7 +65,7 @@ class ResNet_Block(nn.Module):
         return out
 
 
-class CNN_Model(nn.Module):
+class CNNModel(nn.Module):
     def __init__(
         self,
         in_channels: int = 8,
@@ -74,18 +74,18 @@ class CNN_Model(nn.Module):
         super().__init__()
 
         self.blocks = nn.Sequential(
-            ResNet_Block(in_channels, 8, mode='down'),
-            ResNet_Block(8, 16, mode='identity'),
-            ResNet_Block(16, 16, mode='down'),
-            ResNet_Block(16, 32, mode='identity'),
-            ResNet_Block(32, out_channels, mode='down'),
+            ResNetBlock(in_channels, 8, mode='down'),
+            ResNetBlock(8, 16, mode='identity'),
+            ResNetBlock(16, 16, mode='down'),
+            ResNetBlock(16, 32, mode='identity'),
+            ResNetBlock(32, out_channels, mode='down'),
         )
 
     def forward(self, tensor: torch.Tensor) -> torch.Tensor:
         return self.blocks(tensor)
 
 
-class Linear_Head(nn.Module):
+class LinearHead(nn.Module):
     def __init__(
         self,
         in_dim: int = 2*64*9*16,
@@ -113,7 +113,7 @@ class Linear_Head(nn.Module):
         return self.blocks(tensor)
 
 
-class CNN_Classifier(nn.Module):
+class CNNClassifier(nn.Module):
     def __init__(
         self,
         image_size: tp.Tuple[int, int],
@@ -134,16 +134,16 @@ class CNN_Classifier(nn.Module):
             persistent=False,
         )
 
-        self.cnn_model_rgb = CNN_Model(
+        self.cnn_model_rgb = CNNModel(
             in_channels=3*frames,
             out_channels=32,
         )
-        self.cnn_model_depth = CNN_Model(
+        self.cnn_model_depth = CNNModel(
             in_channels=frames,
             out_channels=32,
         )
 
-        self.head = Linear_Head(
+        self.head = LinearHead(
             in_dim=2*32*image_size[0]*image_size[1] // 64,
             num_classes=num_classes,
         )

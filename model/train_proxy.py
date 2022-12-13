@@ -1,5 +1,4 @@
 import glob
-import json
 import os
 import random
 from datetime import datetime
@@ -7,13 +6,11 @@ from datetime import datetime
 import numpy as np
 import torch
 import torch.utils.data
-from loader import AllowedDatasets
-from loader import Hand_Gestures_Dataset
-from loader import MultiStreamDataLoader
-from loader import split_datasets
-from loss import CrossEntropyLoss
-from model_cnn import CNN_Classifier
-from transforms import RGB_Depth_To_RGBD
+
+import model.loader as loader
+import model.losses as losses
+import model.model_cnn as model_cnn
+import model.transforms as transforms
 
 
 def main():
@@ -31,53 +28,57 @@ def main():
         # 'swipe_right',
         # 'swipe_left',
     )
+    with_rejection = True
 
-    DATA_DIR = os.path.join(
-        os.path.expanduser('~'),
-        'personal',
-        'gestures_navigation',
-        'pc_data',
-        'dataset'
+    # PC_DATA_DIR = os.path.join(
+    #     os.path.expanduser('~'),
+    #     'personal',
+    #     'gestures_navigation',
+    #     'pc_data',
+    #     'dataset'
+    # )
+    PC_DATA_DIR = os.path.join(
+        'D:\\',
+        'GesturesNavigation',
+        'dataset',
     )
-    # DATA_DIR = os.path.join(
-    #     'D:\\',
-    #     'GesturesNavigation',
+
+    # SAVE_DIR = os.path.join(
+    #     os.path.expanduser('~'),
+    #     'personal',
+    #     'gestures_navigation',
+    #     'pc_data',
     #     'dataset',
     # )
+    SAVE_DIR = os.path.join(
+        'D:\\',
+        'GesturesNavigation',
+        'dataset',
+    )
 
-    label_map = {gesture: i for i, gesture in enumerate(GESTURES_SET, start=1)}
-    # label_map['no_gesture'] = 0
+    label_map = {gesture: i for i, gesture in enumerate(GESTURES_SET)}
 
-    frames = 1
-    # frames = 1
-
-    batch_size = 24
-    # max_workers = 2
+    batch_size = 2
     max_workers = 2
 
-    # resized_image_size = (720, 1280)
-    # resized_image_size = (72, 128)
-    resized_image_size = (72, 128)  # (512, 512)
+    frames = 1
     base_fps = 30
-    target_fps = 5
-    # target_fps = 30
+    target_fps = 30
+    resized_image_size = (72, 128)
 
-    lr = 1e-3
-    weight_decay = 0
-    # weight_decay = 1e-5
-    weight = None
-    # weight = torch.tensor([1., 10., 10., 10., 10.])
+    lr = 1e-4
+    weight_decay = 1e-3
+    weight = torch.tensor([1., 1., 1.])
 
-    epochs = 5
+    epochs = 1
     validate_each_epoch = 1
-
 
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
 
     data_list = [
-        d for d in glob.glob(os.path.join(DATA_DIR, 'G*/*/*/*'))
+        d for d in glob.glob(os.path.join(PC_DATA_DIR, 'G*/*/*/*'))
         if d.split(os.path.sep)[-3] in GESTURES_SET
     ]
     train_len = int(0.75 * len(data_list))
@@ -87,12 +88,12 @@ def main():
     # train_list = train_list[:]
     # test_list = test_list[:]
 
-    rgb_depth_to_rgb = RGB_Depth_To_RGBD(
+    rgb_depth_to_rgb = transforms.RGBDepthToRGBD(
         resized_image_size,
     )
 
-    train_datasets = split_datasets(
-        Hand_Gestures_Dataset,
+    train_datasets = loader.split_datasets(
+        loader.HandGesturesDataset,
         batch_size=batch_size,
         max_workers=max_workers,
         path_list=train_list,
@@ -100,12 +101,13 @@ def main():
         transforms=rgb_depth_to_rgb,
         base_fps=base_fps,
         target_fps=target_fps,
-        data_type=AllowedDatasets.PROXY,
+        data_type=loader.AllowedDatasets.PROXY,
+        with_rejection=with_rejection,
     )
-    train_loader = MultiStreamDataLoader(train_datasets, image_size=resized_image_size)
+    train_loader = loader.MultiStreamDataLoader(train_datasets, image_size=resized_image_size)
 
-    test_datasets = split_datasets(
-        Hand_Gestures_Dataset,
+    test_datasets = loader.split_datasets(
+        loader.HandGesturesDataset,
         batch_size=batch_size,
         max_workers=max_workers,
         path_list=test_list,
@@ -113,11 +115,12 @@ def main():
         transforms=rgb_depth_to_rgb,
         base_fps=base_fps,
         target_fps=target_fps,
-        data_type=AllowedDatasets.PROXY,
+        data_type=loader.AllowedDatasets.PROXY,
+        with_rejection=with_rejection,
     )
-    test_loader = MultiStreamDataLoader(test_datasets, image_size=resized_image_size)
+    test_loader = loader.MultiStreamDataLoader(test_datasets, image_size=resized_image_size)
 
-    model = CNN_Classifier(
+    model = model_cnn.CNNClassifier(
         resized_image_size,
         frames=frames,
         batch_size=batch_size,
@@ -129,7 +132,7 @@ def main():
         model.load_state_dict(torch.load(checkpoint_path))
 
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
-    loss_func = CrossEntropyLoss(weight=weight)
+    loss_func = losses.CrossEntropyLoss(weight=weight)
     loss_func.to(device)
 
     time = datetime.now().strftime('%Y.%m.%d %H:%M:%S')
@@ -167,15 +170,15 @@ def main():
             optimizer.zero_grad()
 
             prediction = model(images)
-            loss = loss_func(prediction, labels)
-            loss.backward()
+            batch_loss = loss_func(prediction, labels)
+            batch_loss.backward()
             optimizer.step()
 
-            print(f'{datetime.now().strftime("%Y.%m.%d %H:%M:%S")} TRAIN\n{epoch=}, {counter=}\n{prediction=}\n{labels=}')
+            print(f'{datetime.now().strftime("%Y.%m.%d %H:%M:%S")} TRAIN\n{epoch=}, {counter=}/{len(train_list)*120*target_fps//base_fps}\n{prediction=}\n{labels=}')
 
             prediction_probs, prediction_labels = prediction.max(1)
             train_accuracy += (prediction_labels == labels).sum().float()
-            train_loss += loss.item()
+            train_loss += batch_loss.item()
             n += len(labels)
 
             pred = torch.argmax(prediction, dim=1)
@@ -194,10 +197,12 @@ def main():
             log_file.write(msg)
         print(msg)
 
+        torch.save(model.state_dict(), checkpoint_path)
+
         if (epoch+1) % validate_each_epoch == 0:
             model.eval()
-            accuracy = 0
-            loss = 0
+            val_accuracy = 0
+            val_loss = 0
             n = 0
 
             confusion_matrix_val = torch.zeros((len(label_map), len(label_map)), dtype=torch.int)
@@ -213,10 +218,10 @@ def main():
                     prediction = model(val_images)
                     prediction_probs, prediction_labels = prediction.max(1)
 
-                    print(f'{datetime.now().strftime("%Y.%m.%d %H:%M:%S")} VAL\n{epoch=}, {counter=}\n{prediction=}\n{val_labels=}')
+                    print(f'{datetime.now().strftime("%Y.%m.%d %H:%M:%S")} VAL\n{epoch=}, {counter=}/{len(test_list)*120*target_fps//base_fps}\n{prediction=}\n{val_labels=}')
 
-                    accuracy += (prediction_labels == val_labels).sum().float()
-                    loss += loss_func(prediction, val_labels).item()
+                    val_accuracy += (prediction_labels == val_labels).sum().float()
+                    val_loss += loss_func(prediction, val_labels).item()
                     n += len(val_labels)
 
                     pred = torch.argmax(prediction, dim=1)
@@ -225,17 +230,15 @@ def main():
 
                     # break
 
-            accuracy /= n
-            loss /= len(test_list)
+            val_accuracy /= n
+            val_loss /= len(test_list)
 
             time = datetime.now().strftime('%Y.%m.%d %H:%M:%S')
-            msg = f'{time} [Epoch: {epoch+1:02}] Valid acc: {accuracy:.4f} | loss: {loss:.4f}\n\
+            msg = f'{time} [Epoch: {epoch+1:02}] Valid acc: {val_accuracy:.4f} | loss: {val_loss:.4f}\n\
                 {confusion_matrix_val=}\n'.replace('  ', '')
             with open(log_filename, 'a', encoding='utf-8') as log_file:
                 log_file.write(msg)
             print(msg)
-
-            torch.save(model.state_dict(), checkpoint_path)
 
 
 if __name__ == '__main__':

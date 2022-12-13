@@ -1,14 +1,11 @@
 import glob
 import os
 
-import open3d as o3d
+import utils.utils_o3d as utils_o3d
 
 GESTURES_SET = (
-    # 'high',
     'start',
     'select',
-    'swipe_right',
-    'swipe_left',
 )
 
 GESTURES_PARAMS = {
@@ -30,17 +27,22 @@ GESTURES_PARAMS = {
     },
 }
 
-DATA_DIR = os.path.join(
-    os.path.expanduser('~'),
-    'personal',
-    'gestures_navigation',
-    'pc_data',
-    'dataset'
+# SAVE_DIR = os.path.join(
+#     os.path.expanduser('~'),
+#     'personal',
+#     'gestures_navigation',
+#     'pc_data',
+#     'dataset'
+# )
+SAVE_DIR = os.path.join(
+    'D:\\',
+    'GesturesNavigation',
+    'dataset',
 )
 
 
 def main():
-    for participant in glob.glob(os.path.join(DATA_DIR, 'G*')):
+    for participant in glob.glob(os.path.join(SAVE_DIR, 'G*')):
         for gesture in GESTURES_SET:
             for hand in glob.glob(os.path.join(participant, gesture, '*')):
                 for trial in glob.glob(os.path.join(hand, '*')):
@@ -49,7 +51,7 @@ def main():
                     centers = []
 
                     for pc_path in pc_paths:
-                        pc = o3d.io.read_point_cloud(pc_path)
+                        pc = utils_o3d.read_point_cloud(pc_path)
                         centers.append(pc.get_center()[GESTURES_PARAMS[gesture]['coord']])
 
                     threshold_start = (centers[0] - min(centers)) * GESTURES_PARAMS[gesture]['ratio'] + min(centers)

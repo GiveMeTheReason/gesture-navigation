@@ -12,8 +12,8 @@ from torch.utils.data import IterableDataset
 
 
 class AllowedDatasets(enum.Enum):
-    PCD = 'pcd'
-    PROXY = 'proxy'
+    PCD = '*.pcd'
+    PROXY = '*.jpg'
 
 
 def split_datasets(
@@ -33,7 +33,7 @@ def split_datasets(
     return [cls(batch_size=batch_size, **kwargs) for _ in range(num_workers)]
 
 
-class Hand_Gestures_Dataset(IterableDataset):
+class HandGesturesDataset(IterableDataset):
     def __init__(
         self,
         path_list: tp.List[str],
@@ -41,8 +41,9 @@ class Hand_Gestures_Dataset(IterableDataset):
         batch_size: int = 1,
         transforms: tp.Any = None,
         base_fps: int = 30,
-        target_fps:int = 30,
+        target_fps: int = 30,
         data_type: AllowedDatasets = AllowedDatasets.PCD,
+        with_rejection: bool = True,
     ) -> None:
         self.path_list = path_list
         self.label_map = label_map
@@ -51,6 +52,10 @@ class Hand_Gestures_Dataset(IterableDataset):
 
         self.base_fps = base_fps
         self.target_fps = target_fps
+
+        self.with_rejection = with_rejection
+        if with_rejection:
+            self.label_map['no_gesture'] = len(label_map)
 
         if not isinstance(data_type, AllowedDatasets):
             raise Exception('Unknown data_type for dataset')
@@ -74,15 +79,15 @@ class Hand_Gestures_Dataset(IterableDataset):
 
         current_frame = max(0, self.base_fps - self.target_fps)
 
-        if self.data_type == AllowedDatasets.PCD:
-            paths = sorted(glob.glob(os.path.join(path, '*.pcd')))
-        elif self.data_type == AllowedDatasets.PROXY:
-            paths = sorted(glob.glob(os.path.join(path, '*.jpg')))
+        paths = sorted(glob.glob(os.path.join(path, self.data_type.value)))
 
         for i, pc_path in enumerate(paths):
             current_frame += self.target_fps
             while current_frame >= self.base_fps:
                 current_frame -= self.base_fps
+
+                if not self.with_rejection and not (label_start <= i <= label_finish):
+                    continue
 
                 pc = pc_path
                 if self.transforms is not None:

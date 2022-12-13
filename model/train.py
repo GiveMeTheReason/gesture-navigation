@@ -1,5 +1,4 @@
 import glob
-import json
 import os
 import random
 from datetime import datetime
@@ -7,21 +6,18 @@ from datetime import datetime
 import numpy as np
 import torch
 import torch.utils.data
-from loader import AllowedDatasets
-from loader import Hand_Gestures_Dataset
-from loader import MultiStreamDataLoader
-from loader import split_datasets
-from loss import CrossEntropyLoss
-from model_cnn import CNN_Classifier
-from transforms import PointCloud_To_RGBD
-from transforms import RGB_Depth_To_RGBD
-from utils import get_intrinsics
 
+import model.loader as loader
+import model.losses as losses
+import model.model_cnn as model_cnn
+import model.transforms as transforms
 import open3d as o3d
+import utils.utils as utils
+import utils.utils_o3d as utils_o3d
 
 
 def main():
-    exp_id = '01'
+    exp_id = '02'
     log_filename = f'train_log{exp_id}.txt'
     checkpoint_path = f'checkpoint{exp_id}.pth'
 
@@ -29,72 +25,68 @@ def main():
     device = 'cpu' if not torch.cuda.is_available() else 'cuda'
 
     GESTURES_SET = (
-        # 'high',
         'start',
         'select',
-        # 'swipe_right',
-        # 'swipe_left',
     )
+    with_rejection = True
 
-    DATA_DIR = os.path.join(
-        os.path.expanduser('~'),
-        'personal',
-        'gestures_navigation',
-        'pc_data',
-        'dataset'
-    )
-    # DATA_DIR = os.path.join(
-    #     'D:\\',
-    #     'GesturesNavigation',
+    # PC_DATA_DIR = os.path.join(
+    #     os.path.expanduser('~'),
+    #     'personal',
+    #     'gestures_navigation',
+    #     'pc_data',
     #     'dataset',
     # )
-
+    PC_DATA_DIR = os.path.join(
+        'D:\\',
+        'GesturesNavigation',
+        'dataset',
+    )
 
     CAMERAS_DIR = ('cam_center',)
-    CALIBRATION_DIR = os.path.join(os.path.dirname(DATA_DIR), 'calib_params')
+    # CALIBRATION_DIR = os.path.join(os.path.dirname(PC_DATA_DIR), 'calib_params')
+    CALIBRATION_DIR = os.path.join(
+        os.path.dirname(PC_DATA_DIR),
+        'gestures_navigation',
+        'pc_data',
+        'calib_params',
+    )
     CALIBRATION_INTRINSIC = {
         'cam_center': '1m.json',
     }
 
-    RENDER_OPTION = 'render_option.json'
+    # RENDER_OPTION = 'render_option.json'
+    RENDER_OPTION = os.path.join(
+        os.path.dirname(PC_DATA_DIR),
+        'gestures_navigation',
+        'pc_data',
+        'render_option.json'
+    )
 
     main_camera_index = 0
 
-    label_map = {gesture: i for i, gesture in enumerate(GESTURES_SET, start=1)}
-    label_map['no_gesture'] = 0
-
-    frames = 1
-    # frames = 1
+    label_map = {gesture: i for i, gesture in enumerate(GESTURES_SET)}
 
     batch_size = 12
     max_workers = 2
 
-    # resized_image_size = (720, 1280)
-    # resized_image_size = (72, 128)
-    resized_image_size = (72, 128)  # (512, 512)
+    frames = 1
     base_fps = 30
     target_fps = 5
-    # target_fps = 30
+    resized_image_size = (72, 128)
 
     angle = np.deg2rad(-30)
     z_target = 1.25
-
-    # angle = np.deg2rad(0.0)
-    # z_target = 0.0
 
     loc = np.array([0., 0., 0., 0., 0., 0.])
     scale = np.array([np.pi/24, np.pi/18, np.pi/48, 0.2, 0.1, 0.1]) / 1.5
 
     lr = 1e-4
-    # weight_decay = 0
-    weight_decay = 1e-5
-    # weight = None
-    # weight = torch.tensor([1., 10., 10., 10., 10.])
-    weight = torch.tensor([4., 1., 1.])
+    weight_decay = 1e-3
+    weight = torch.tensor([1., 1., 1.])
 
-    epochs = 20
+    epochs = 1
     validate_each_epoch = 1
-
 
     random.seed(seed)
     np.random.seed(seed)
@@ -102,47 +94,40 @@ def main():
 
     intrinsics_paths = [os.path.join(CALIBRATION_DIR, CALIBRATION_INTRINSIC[camera])
                         for camera in CAMERAS_DIR]
-    intrinsics = get_intrinsics(intrinsics_paths)[main_camera_index]
-
-    render_option_path = os.path.join(os.path.dirname(DATA_DIR), RENDER_OPTION)
+    intrinsics = utils.get_intrinsics(intrinsics_paths)[main_camera_index]
 
     *image_size, = map(int, intrinsics[:2])
 
-    visualizer = o3d.visualization.Visualizer()
-    visualizer.create_window(width=image_size[0], height=image_size[1])
+    visualizer = utils_o3d.get_visualizer(image_size, RENDER_OPTION)
 
-    visualizer.get_render_option().load_from_json(render_option_path)
-
-    pc_to_rgb = PointCloud_To_RGBD(
+    pc_to_rgb = transforms.PointCloudToRGBD(
         batch_size,
         intrinsics,
         visualizer,
-        render_option_path,
+        RENDER_OPTION,
         angle=angle,
         z_target=z_target,
         loc=loc,
         scale=scale,
         image_size=resized_image_size,
     )
-    rgb_depth_to_rgb = RGB_Depth_To_RGBD(
+    rgb_depth_to_rgb = transforms.RGBDepthToRGBD(
         resized_image_size,
     )
 
     data_list = [
-        d for d in glob.glob(os.path.join(DATA_DIR, 'G*/*/*/*'))
+        d for d in glob.glob(os.path.join(PC_DATA_DIR, 'G*/*/*/*'))
         if d.split(os.path.sep)[-3] in GESTURES_SET
     ]
     test_len = int(0.25 * len(data_list))
     train_len = len(data_list) - test_len
     train_list, test_list = map(list, torch.utils.data.random_split(data_list, [train_len, test_len]))
 
-    # train_list = train_list[:21]
-    # test_list = test_list[:7]
     # train_list = train_list[:1]
     # test_list = test_list[:1]
 
-    train_datasets = split_datasets(
-        Hand_Gestures_Dataset,
+    train_datasets = loader.split_datasets(
+        loader.HandGesturesDataset,
         batch_size=batch_size,
         max_workers=max_workers,
         path_list=train_list,
@@ -150,23 +135,13 @@ def main():
         transforms=pc_to_rgb,
         base_fps=base_fps,
         target_fps=target_fps,
-        data_type=AllowedDatasets.PCD,
+        data_type=loader.AllowedDatasets.PCD,
+        with_rejection=with_rejection,
     )
-    train_loader = MultiStreamDataLoader(train_datasets, image_size=resized_image_size)
+    train_loader = loader.MultiStreamDataLoader(train_datasets, image_size=resized_image_size)
 
-    # test_datasets = split_datasets(
-    #     Hand_Gestures_Dataset,
-    #     batch_size=batch_size,
-    #     max_workers=max_workers,
-    #     path_list=test_list,
-    #     label_map=label_map,
-    #     transforms=pc_to_rgb,
-    #     base_fps=base_fps,
-    #     target_fps=target_fps,
-    #     data_type=AllowedDatasets.PCD,
-    # )
-    test_datasets = split_datasets(
-        Hand_Gestures_Dataset,
+    test_datasets = loader.split_datasets(
+        loader.HandGesturesDataset,
         batch_size=batch_size,
         max_workers=max_workers,
         path_list=test_list,
@@ -174,11 +149,12 @@ def main():
         transforms=rgb_depth_to_rgb,
         base_fps=base_fps,
         target_fps=target_fps,
-        data_type=AllowedDatasets.PROXY,
+        data_type=loader.AllowedDatasets.PROXY,
+        with_rejection=with_rejection,
     )
-    test_loader = MultiStreamDataLoader(test_datasets, image_size=resized_image_size)
+    test_loader = loader.MultiStreamDataLoader(test_datasets, image_size=resized_image_size)
 
-    model = CNN_Classifier(
+    model = model_cnn.CNNClassifier(
         resized_image_size,
         frames=frames,
         batch_size=batch_size,
@@ -190,7 +166,7 @@ def main():
         model.load_state_dict(torch.load(checkpoint_path))
 
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
-    loss_func = CrossEntropyLoss(weight=weight)
+    loss_func = losses.CrossEntropyLoss(weight=weight)
     loss_func.to(device)
 
     time = datetime.now().strftime('%Y.%m.%d %H:%M:%S')
@@ -228,20 +204,20 @@ def main():
             optimizer.zero_grad()
 
             prediction = model(images)
-            loss = loss_func(prediction, labels)
-            loss.backward()
+            batch_loss = loss_func(prediction, labels)
+            batch_loss.backward()
             optimizer.step()
 
             print(f'{datetime.now().strftime("%Y.%m.%d %H:%M:%S")} TRAIN\n{epoch=}, {counter=}\n{prediction=}\n{labels=}')
 
             prediction_probs, prediction_labels = prediction.max(1)
             train_accuracy += (prediction_labels == labels).sum().float()
-            train_loss += loss.item()
+            train_loss += batch_loss.item()
             n += len(labels)
 
-            pred = torch.argmax(prediction, dim=1)
+            train_preds = torch.argmax(prediction, dim=1)
             for i in range(len(labels)):
-                confusion_matrix_train[pred[i], labels[i]] += 1
+                confusion_matrix_train[train_preds[i], labels[i]] += 1
 
             # break
 
@@ -259,8 +235,8 @@ def main():
 
         if (epoch+1) % validate_each_epoch == 0:
             model.eval()
-            accuracy = 0
-            loss = 0
+            val_accuracy = 0
+            val_loss = 0
             n = 0
 
             confusion_matrix_val = torch.zeros((len(label_map), len(label_map)), dtype=torch.int)
@@ -278,21 +254,21 @@ def main():
 
                     print(f'{datetime.now().strftime("%Y.%m.%d %H:%M:%S")} VAL\n{epoch=}, {counter=}\n{prediction=}\n{val_labels=}')
 
-                    accuracy += (prediction_labels == val_labels).sum().float()
-                    loss += loss_func(prediction, val_labels).item()
+                    val_accuracy += (prediction_labels == val_labels).sum().float()
+                    val_loss += loss_func(prediction, val_labels).item()
                     n += len(val_labels)
 
-                    pred = torch.argmax(prediction, dim=1)
+                    val_preds = torch.argmax(prediction, dim=1)
                     for i in range(len(val_labels)):
-                        confusion_matrix_val[pred[i], val_labels[i]] += 1
+                        confusion_matrix_val[val_preds[i], val_labels[i]] += 1
 
                     # break
 
-            accuracy /= n
-            loss /= len(test_list)
+            val_accuracy /= n
+            val_loss /= len(test_list)
 
             time = datetime.now().strftime('%Y.%m.%d %H:%M:%S')
-            msg = f'{time} [Epoch: {epoch+1:02}] Valid acc: {accuracy:.4f} | loss: {loss:.4f}\n\
+            msg = f'{time} [Epoch: {epoch+1:02}] Valid acc: {val_accuracy:.4f} | loss: {val_loss:.4f}\n\
                 {confusion_matrix_val=}\n'.replace('  ', '')
             with open(log_filename, 'a', encoding='utf-8') as log_file:
                 log_file.write(msg)

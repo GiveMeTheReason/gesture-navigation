@@ -6,7 +6,7 @@ import numpy as np
 import torch
 import torchvision.transforms as transforms
 
-from model.model_cnn import CNN_Classifier
+from model.model_cnn import CNNClassifier
 
 PARTICIPANT = 'G103'
 GESTURE = 'start'
@@ -49,7 +49,7 @@ batch_size = 8
 CHECHPOINT_PATH = 'checkpoint01.pth'
 
 
-model = CNN_Classifier(
+model = CNNClassifier(
     resized_image_size,
     frames=frames,
     batch_size=batch_size,
