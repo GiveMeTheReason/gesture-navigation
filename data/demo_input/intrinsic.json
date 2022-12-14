@@ -1,0 +1,20 @@
+{
+	"color_mode" : "MJPG_1080P",
+	"depth_mode" : "NFOV_UNBINNED",
+	"height" : 1080,
+	"intrinsic_matrix" : 
+	[
+		899.4442138671875,
+		0.0,
+		0.0,
+		0.0,
+		898.8028564453125,
+		0.0,
+		957.82110595703125,
+		548.6478271484375,
+		1.0
+	],
+	"serial_number" : "000583592412",
+	"stream_length_usec" : 5033333,
+	"width" : 1920
+}

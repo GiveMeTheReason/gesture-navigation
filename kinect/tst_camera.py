@@ -1,3 +1,5 @@
+import os
+
 import cv2
 import k4a
 import numpy as np
@@ -38,11 +40,8 @@ transformation = k4a.Transformation(calibration)
 
 
 GESTURES_SET = (
-    # 'high',
     'start',
     'select',
-    # 'swipe_right',
-    # 'swipe_left',
 )
 
 resized_image_size = (72, 128)
@@ -54,9 +53,12 @@ target_fps = 5
 label_map = {gesture: i for i, gesture in enumerate(GESTURES_SET, start=1)}
 label_map['no_gesture'] = 0
 
-batch_size = 8
+batch_size = 1
 
-CHECHPOINT_PATH = 'checkpoint01.pth'
+CHECHPOINT_PATH = os.path.join(
+    'outputs',
+    'checkpoint01.pth',
+)
 
 
 model = CNNClassifier(
@@ -98,7 +100,7 @@ while True:
     depth = np.where(depth > 2000, 0, depth)
 
     input_image = resize(torch.cat((to_tensor(rgb), depth_norm(to_tensor(depth))), 0))[None, ...]
-    preds = model(torch.cat([input_image, torch.zeros((batch_size - 1, *input_image.shape[1:]))]))[0]
+    preds = model(input_image)
 
     label = inv_map[torch.argmax(preds).item()]
     print(preds, capture.color.device_timestamp_usec)

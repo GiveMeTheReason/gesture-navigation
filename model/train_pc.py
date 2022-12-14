@@ -17,8 +17,8 @@ import utils.utils_o3d as utils_o3d
 
 def main():
     exp_id = '02'
-    log_filename = f'train_log{exp_id}.txt'
-    checkpoint_path = f'checkpoint{exp_id}.pth'
+    log_filename = os.path.join('outputs', f'train_log{exp_id}.txt')
+    checkpoint_path = os.path.join('outputs', f'checkpoint{exp_id}.pth')
 
     seed = 0
     device = 'cpu' if not torch.cuda.is_available() else 'cuda'
@@ -47,7 +47,7 @@ def main():
     CALIBRATION_DIR = os.path.join(
         os.path.dirname(PC_DATA_DIR),
         'gestures_navigation',
-        'pc_data',
+        'data',
         'calib_params',
     )
     CALIBRATION_INTRINSIC = {
@@ -58,7 +58,7 @@ def main():
     RENDER_OPTION = os.path.join(
         os.path.dirname(PC_DATA_DIR),
         'gestures_navigation',
-        'pc_data',
+        'data',
         'render_option.json'
     )
 

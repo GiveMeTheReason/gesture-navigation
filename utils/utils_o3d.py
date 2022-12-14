@@ -214,3 +214,60 @@ def concatenate_point_clouds(
     return concatenated_point_cloud
 
 
+def filter_by_image_size(point_cloud_data, width, height):
+    """
+    Returns an array of points that are inside given image size
+
+    Parameters:
+    point_cloud_data (np.ndarray[float]): numpy array representation of point cloud
+    width (int): image width
+    height (int): image height
+
+    Returns:
+    filtered_point_cloud_data (np.ndarray[float]): numpy array representation of point cloud
+    """
+    point_cloud_index = (
+        (0 <= point_cloud_data[:, 0]) *
+        (point_cloud_data[:, 0] < width) *
+        (0 <= point_cloud_data[:, 1]) * 
+        (point_cloud_data[:, 1] < height)
+    )
+    filtered_point_cloud_data = point_cloud_data[point_cloud_index]
+
+    return filtered_point_cloud_data
+
+
+def project_point_clouds(point_cloud, K, T, width, height):
+    """
+    Projects point cloud on image with given camera parameters and image size
+    Projection goes on camera shifted by angle around z_target point in YZ-plane
+    Returns projected image as numpy array
+
+    Parameters:
+    point_cloud (open3d.geometry.PointCloud): point cloud to project
+    K (np.ndarray[float]): camera intrinsic matrix [4 x 4]
+    T (np.ndarray[float]): camera extrinsic matrix [4 x 4]
+    width (int): width of the image
+    height (int): height of the image
+
+    Returns:
+    image_projected (np.ndarray[float]): projected image
+    """
+    # Create a copy
+    point_cloud = o3d.geometry.PointCloud(point_cloud)
+
+    point_cloud.transform(K @ np.linalg.inv(T))
+
+    point_cloud_data = np.hstack([np.asarray(point_cloud.points), np.asarray(point_cloud.colors)])
+
+    point_cloud_data.view('i8,i8,i8,i8,i8,i8').sort(order=['f2'], axis=0)
+    point_cloud_data = point_cloud_data[::-1]
+    point_cloud_data[:, :3] /= point_cloud_data[:, 2].reshape(-1, 1)
+
+    filtered_point_cloud_data = filter_by_image_size(point_cloud_data, width, height)
+
+    image_projected = np.zeros((height, width, 3))
+    image_projected[filtered_point_cloud_data[:, 1].astype(np.int16),
+                filtered_point_cloud_data[:, 0].astype(np.int16)] = filtered_point_cloud_data[:, 3:]
+    
+    return image_projected
