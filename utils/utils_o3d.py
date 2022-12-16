@@ -153,7 +153,7 @@ def get_rgbd_images(
             depth=o3d.io.read_image(images_paths[2 * i + 1]),
             depth_scale=depth_scale,
             depth_trunc=depth_trunc,
-            convert_rgb_to_intensity=False
+            convert_rgb_to_intensity=False,
         )
 
     return rgbd_images
@@ -191,7 +191,7 @@ def create_point_clouds(
                 *map(lambda val: int(val[1]) if to_filter[val[0]] else val[1], enumerate([*intrinsics[i]]))
             ),
             extrinsic=np.linalg.inv(extrinsics[i]),
-            project_valid_depth_only=True
+            project_valid_depth_only=True,
         )
 
     return point_clouds

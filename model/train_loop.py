@@ -61,17 +61,7 @@ def train_model(
 
         confusion_matrix_train = torch.zeros((len(label_map), len(label_map)), dtype=torch.int)
 
-        counter = 0
-        for images, labels in train_loader:
-            # print(labels)
-            # print(pc_paths)
-            # if not all(labels):
-            #     continue
-
-            # for i, img in enumerate(pc_paths):
-            #     plt.imsave(f'{i}_color.png', img[:3].permute(1, 2, 0).numpy())
-            #     plt.imsave(f'{i}_depth.png', img[-1].numpy())
-            counter += 1
+        for counter, (images, labels) in enumerate(train_loader):
 
             images = images.to(device)
             labels = labels.to(device)
@@ -118,66 +108,66 @@ def train_model(
             'train_accuracy': train_accuracy,
             **{
                 f'train_acc_{str(i).zfill(2)}':
-                confusion_matrix_train[i, i] / confusion_matrix_train[i, :].sum()
-                for i in range(len(label_map))
+                confusion_matrix_train[cls, cls] / confusion_matrix_train[:, cls].sum()
+                for cls in range(len(label_map))
             }
         })
 
-        if (epoch+1) % validate_each_epoch == 0:
-            model.eval()
-            val_accuracy = 0
-            val_loss = 0
-            n = 0
+        if not ((epoch+1) % validate_each_epoch == 0):
+            continue
 
-            confusion_matrix_val = torch.zeros((len(label_map), len(label_map)), dtype=torch.int)
+        model.eval()
+        val_accuracy = 0
+        val_loss = 0
+        n = 0
 
-            counter = 0
-            with torch.no_grad():
-                for val_images, val_labels in test_loader:
-                    counter += 1
+        confusion_matrix_val = torch.zeros((len(label_map), len(label_map)), dtype=torch.int)
 
-                    val_images = val_images.to(device)
-                    val_labels = val_labels.to(device)
+        with torch.no_grad():
+            for counter, (val_images, val_labels) in enumerate(test_loader):
 
-                    prediction = model(val_images)
-                    prediction_probs, prediction_labels = prediction.max(1)
+                val_images = val_images.to(device)
+                val_labels = val_labels.to(device)
 
-                    msg = (
-                        f'{now()} VAL\n'
-                        f'{epoch=}, {counter=}/{len(test_list)*120*target_fps//base_fps}\n'
-                        f'{prediction=}\n'
-                        f'{val_labels=}'
-                    )
-                    log_msg(msg, to_terminal=True, to_log_file=False)
+                prediction = model(val_images)
+                prediction_probs, prediction_labels = prediction.max(1)
 
-                    val_accuracy += (prediction_labels == val_labels).sum().float()
-                    val_loss += loss_func(prediction, val_labels).item()
-                    n += len(val_labels)
+                msg = (
+                    f'{now()} VAL\n'
+                    f'{epoch=}, {counter=}/{len(test_list)*120*target_fps//base_fps}\n'
+                    f'{prediction=}\n'
+                    f'{val_labels=}'
+                )
+                log_msg(msg, to_terminal=True, to_log_file=False)
 
-                    pred = torch.argmax(prediction, dim=1)
-                    for i in range(len(val_labels)):
-                        confusion_matrix_val[pred[i], val_labels[i]] += 1
+                val_accuracy += (prediction_labels == val_labels).sum().float()
+                val_loss += loss_func(prediction, val_labels).item()
+                n += len(val_labels)
 
-                    break
+                pred = torch.argmax(prediction, dim=1)
+                for i in range(len(val_labels)):
+                    confusion_matrix_val[pred[i], val_labels[i]] += 1
 
-            val_accuracy /= n
-            val_loss /= len(test_list)
+                break
 
-            msg = (
-                f'{now()} [Epoch: {epoch+1:02}] Valid acc: {val_accuracy:.4f} | loss: {val_loss:.4f}\n'
-                f'{confusion_matrix_val=}\n'
-            )
-            log_msg(msg, to_terminal=True, to_log_file=True)
+        val_accuracy /= n
+        val_loss /= len(test_list)
 
-            wandb.log({
-                'val_loss': val_loss,
-                'val_accuracy': val_accuracy,
-                **{
-                    f'val_acc_{str(i).zfill(2)}':
-                    confusion_matrix_val[i, i] / confusion_matrix_val[i, :].sum()
-                    for i in range(len(label_map))
-                }
-            })
+        msg = (
+            f'{now()} [Epoch: {epoch+1:02}] Valid acc: {val_accuracy:.4f} | loss: {val_loss:.4f}\n'
+            f'{confusion_matrix_val=}\n'
+        )
+        log_msg(msg, to_terminal=True, to_log_file=True)
+
+        wandb.log({
+            'val_loss': val_loss,
+            'val_accuracy': val_accuracy,
+            **{
+                f'val_acc_{str(i).zfill(2)}':
+                confusion_matrix_val[cls, cls] / confusion_matrix_val[:, cls].sum()
+                for cls in range(len(label_map))
+            }
+        })
 
     msg = 'Training finished!\n\n'
     log_msg(msg, to_terminal=True, to_log_file=True)

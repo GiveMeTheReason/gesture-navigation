@@ -11,8 +11,10 @@ class ResNetBlock(nn.Module):
         out_channels: int,
         kernel_size: int = 3,
         stride: int = 1,
+        dilation: int = 1,
         padding: int = 1,
-        mode = 'identity'
+        resample_factor = 2,
+        mode = 'identity',
     ) -> None:
         super().__init__()
 
@@ -23,6 +25,7 @@ class ResNetBlock(nn.Module):
             out_channels,
             kernel_size=kernel_size,
             stride=stride,
+            dilation=dilation,
             padding=padding,
         )
         self.bn1 = nn.BatchNorm2d(in_channels)
@@ -32,22 +35,30 @@ class ResNetBlock(nn.Module):
             out_channels,
             kernel_size=kernel_size,
             stride=stride,
+            dilation=dilation,
             padding=padding,
         )
         self.bn2 = nn.BatchNorm2d(out_channels)
 
+        adapted_kernel_size = 2 * int(kernel_size * (stride + 1) / 2) - 1
+        adapted_stride = stride ** 2
+        adapted_dilation = dilation
+        adapted_padding = padding * (stride + 1) - dilation * int(1 - stride / 2)
         self.identity_conv = nn.Conv2d(
             in_channels,
             out_channels,
-            kernel_size=1,
+            kernel_size=adapted_kernel_size,
+            stride=adapted_stride,
+            dilation=adapted_dilation,
+            padding=adapted_padding,
         )
 
         if mode == 'identity':
             self.identity_resample = nn.Identity()
         elif mode == 'up':
-            self.identity_resample = nn.Upsample(scale_factor=2, mode='nearest')
+            self.identity_resample = nn.Upsample(scale_factor=resample_factor, mode='nearest')
         elif mode == 'down':
-            self.identity_resample = nn.MaxPool2d(kernel_size=2)
+            self.identity_resample = nn.MaxPool2d(kernel_size=resample_factor)
 
     def forward(self, tensor: torch.Tensor) -> torch.Tensor:
         out = self.bn1(tensor)
@@ -69,16 +80,23 @@ class CNNModel(nn.Module):
     def __init__(
         self,
         in_channels: int = 8,
-        out_channels: int = 32,
+        out_channels: int = 64,
     ) -> None:
         super().__init__()
 
         self.blocks = nn.Sequential(
-            ResNetBlock(in_channels, 8, mode='down'),
-            ResNetBlock(8, 16, mode='identity'),
-            ResNetBlock(16, 16, mode='down'),
-            ResNetBlock(16, 32, mode='identity'),
-            ResNetBlock(32, out_channels, mode='down'),
+            ResNetBlock(in_channels, 8, mode='identity', kernel_size=7, dilation=2, padding=6),
+            ResNetBlock(8, 8, mode='identity', kernel_size=5, padding=2),
+            ResNetBlock(8, 16, mode='down', kernel_size=5, padding=2),
+            ResNetBlock(16, 16, mode='identity', kernel_size=5, padding=2),
+            ResNetBlock(16, 16, mode='identity', kernel_size=5, padding=2),
+            ResNetBlock(16, 32, mode='down', kernel_size=5, padding=2),
+            ResNetBlock(32, 32, mode='identity'),
+            ResNetBlock(32, 32, mode='identity'),
+            ResNetBlock(32, 64, mode='down'),
+            ResNetBlock(64, 64, mode='identity'),
+            ResNetBlock(64, 64, mode='identity'),
+            ResNetBlock(64, out_channels, mode='down'),
         )
 
     def forward(self, tensor: torch.Tensor) -> torch.Tensor:
@@ -89,24 +107,19 @@ class LinearHead(nn.Module):
     def __init__(
         self,
         in_dim: int = 2*64*9*16,
-        num_classes: int = 5,
+        num_classes: int = 3,
     ) -> None:
         super().__init__()
 
         self.blocks = nn.Sequential(
             nn.Flatten(),
 
-            nn.Linear(in_dim, 8 * 9 * 16),
-            nn.BatchNorm1d(8 * 9 * 16),
+            nn.Linear(in_dim, 4 * 9 * 16),
+            nn.BatchNorm1d(4 * 9 * 16),
             nn.ReLU(),
-            nn.Dropout(p=0.2),
+            nn.Dropout(p=0.5),
 
-            nn.Linear(8 * 9 * 16, 9 * 16),
-            nn.BatchNorm1d(9 * 16),
-            nn.ReLU(),
-            nn.Dropout(p=0.2),
-
-            nn.Linear(9 * 16, num_classes),
+            nn.Linear(4 * 9 * 16, num_classes),
         )
 
     def forward(self, tensor: torch.Tensor) -> torch.Tensor:
@@ -136,15 +149,16 @@ class CNNClassifier(nn.Module):
 
         self.cnn_model_rgb = CNNModel(
             in_channels=3*frames,
-            out_channels=32,
+            out_channels=64,
         )
         self.cnn_model_depth = CNNModel(
             in_channels=frames,
-            out_channels=32,
+            out_channels=64,
         )
 
         self.head = LinearHead(
-            in_dim=2*32*image_size[0]*image_size[1] // 64,
+            # in_dim=2*64*image_size[0]*image_size[1] // (4**4),
+            in_dim=4096,
             num_classes=num_classes,
         )
 

@@ -10,7 +10,7 @@ import numpy as np
 
 def estimate_execution_resources(
     dataset_dir: str,
-    gestures_set: set
+    gestures_set: set,
 ) -> None:
     """
     Prints estimated time and memory for processing the dataset
@@ -49,7 +49,7 @@ def build_intrinsic_matrix(
         [fx, 0., cx, 0.],
         [0., fy, cy, 0.],
         [0., 0., 1., 0.],
-        [0., 0., 0., 1.]
+        [0., 0., 0., 1.],
     ], dtype=np.float64)
 
     return intrinsic_matrix
@@ -222,10 +222,3 @@ def map_nearest(cameras_filenames, main_camera_index=0):
             nearest[i, j] = pointer
 
     return nearest
-
-
-
-
-
-
-
