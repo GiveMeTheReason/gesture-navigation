@@ -11,6 +11,7 @@ import numpy as np
 def estimate_execution_resources(
     dataset_dir: str,
     gestures_set: set,
+    is_proxy: False,
 ) -> None:
     """
     Prints estimated time and memory for processing the dataset
@@ -19,12 +20,19 @@ def estimate_execution_resources(
     dataset_dir (str): directory of dataset
     gestures_set (set): set of chosen gestures
     """
+    if is_proxy:
+        mem_mult = 5
+        time_mult = 30
+    else:
+        mem_mult = 120
+        time_mult = 60
+
     counter = 0
     for gesture in gestures_set:
         counter += len(glob.glob(os.path.join(dataset_dir, 'G*', gesture, '*', 'trial*')))
     print(f'Total count of trials: {counter}')
-    print(f'Estimated memory usage: {round(counter * 120 / 1024, 2)} GB')
-    print(f'Estimated processing time: {round(counter * 120 / 7200, 2)} hours')
+    print(f'Estimated memory usage: {round(counter * mem_mult / 1024, 2)} GB')
+    print(f'Estimated processing time: {round(counter * time_mult / 3600, 2)} hours')
 
 
 def build_intrinsic_matrix(

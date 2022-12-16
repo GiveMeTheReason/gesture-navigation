@@ -73,7 +73,7 @@ def main():
 
     batch_size = 1
 
-    utils.estimate_execution_resources(PC_DATA_DIR, GESTURES_SET)
+    utils.estimate_execution_resources(PC_DATA_DIR, GESTURES_SET, is_proxy=True)
 
     visualizer = utils_o3d.get_visualizer(image_size, RENDER_OPTION)
     rgb_to_pil = T.ToPILImage(mode='RGB')

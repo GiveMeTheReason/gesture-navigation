@@ -90,7 +90,7 @@ def train_model(
             for i in range(len(labels)):
                 confusion_matrix_train[pred[i], labels[i]] += 1
 
-            break
+            # break
 
         train_accuracy /= n
         train_loss /= len(train_list)
@@ -148,7 +148,7 @@ def train_model(
                 for i in range(len(val_labels)):
                     confusion_matrix_val[pred[i], val_labels[i]] += 1
 
-                break
+                # break
 
         val_accuracy /= n
         val_loss /= len(test_list)

@@ -44,7 +44,7 @@ def main():
     if with_rejection:
         label_map['no_gesture'] = len(label_map)
 
-    batch_size = 12
+    batch_size = 24
     max_workers = 2
 
     frames = 1
@@ -53,10 +53,10 @@ def main():
     resized_image_size = (72, 128)
 
     lr = 1e-4
-    weight_decay = 1e-3
+    weight_decay = 1e-4
     weight = torch.tensor([1., 1., 1.])
 
-    epochs = 1
+    epochs = 20
     validate_each_epoch = 1
 
     random.seed(seed)
