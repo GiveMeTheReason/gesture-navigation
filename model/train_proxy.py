@@ -95,7 +95,7 @@ def main():
         data_type=loader.AllowedDatasets.PROXY,
         with_rejection=with_rejection,
     )
-    train_loader = loader.MultiStreamDataLoader(train_datasets, image_size=resized_image_size)
+    train_loader = loader.MultiStreamDataLoader(train_datasets, image_size=resized_image_size, num_workers=1)
 
     test_datasets = loader.split_datasets(
         loader.HandGesturesDataset,
@@ -109,7 +109,7 @@ def main():
         data_type=loader.AllowedDatasets.PROXY,
         with_rejection=with_rejection,
     )
-    test_loader = loader.MultiStreamDataLoader(test_datasets, image_size=resized_image_size)
+    test_loader = loader.MultiStreamDataLoader(test_datasets, image_size=resized_image_size, num_workers=1)
 
     model = model_cnn.CNNClassifier(
         resized_image_size,

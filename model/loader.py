@@ -116,13 +116,15 @@ class MultiStreamDataLoader():
         self,
         datasets: tp.List[Dataset],
         image_size: tp.Tuple[int, int],
+        num_workers: int = 0,
     ) -> None:
         self.datasets = datasets
         self.image_size = image_size
+        self.num_workers = num_workers
 
     def get_stream_loaders(self):
         return zip(*[DataLoader(
-            dataset, num_workers=0, batch_size=None
+            dataset, num_workers=self.num_workers, batch_size=None,
         ) for dataset in self.datasets])
 
     def __iter__(self):

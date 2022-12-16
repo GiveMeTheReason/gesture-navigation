@@ -66,7 +66,7 @@ def train_model(
             images = images.to(device)
             labels = labels.to(device)
 
-            optimizer.zero_grad()
+            optimizer.zero_grad(set_to_none=True)
 
             prediction = model(images)
             batch_loss = loss_func(prediction, labels)

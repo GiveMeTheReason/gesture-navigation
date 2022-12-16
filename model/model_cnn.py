@@ -27,6 +27,7 @@ class ResNetBlock(nn.Module):
             stride=stride,
             dilation=dilation,
             padding=padding,
+            bias=False,
         )
         self.bn1 = nn.BatchNorm2d(in_channels)
 
@@ -37,6 +38,7 @@ class ResNetBlock(nn.Module):
             stride=stride,
             dilation=dilation,
             padding=padding,
+            bias=False,
         )
         self.bn2 = nn.BatchNorm2d(out_channels)
 
@@ -51,6 +53,7 @@ class ResNetBlock(nn.Module):
             stride=adapted_stride,
             dilation=adapted_dilation,
             padding=adapted_padding,
+            bias=False,
         )
 
         if mode == 'identity':
@@ -114,7 +117,7 @@ class LinearHead(nn.Module):
         self.blocks = nn.Sequential(
             nn.Flatten(),
 
-            nn.Linear(in_dim, 4 * 9 * 16),
+            nn.Linear(in_dim, 4 * 9 * 16, bias=False),
             nn.BatchNorm1d(4 * 9 * 16),
             nn.ReLU(),
             nn.Dropout(p=0.5),
