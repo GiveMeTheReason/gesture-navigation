@@ -2,6 +2,9 @@ import glob
 import os
 
 import numpy as np
+import PIL.PngImagePlugin as PngIP
+import torch
+import torchvision.transforms as T
 
 import model.transforms as transforms
 import utils.utils as utils
@@ -40,7 +43,7 @@ SAVE_DIR = os.path.join(
 
 # RENDER_OPTION = 'render_option.json'
 RENDER_OPTION = os.path.join(
-    os.path.dirname(SAVE_DIR),
+    os.path.dirname(PC_DATA_DIR),
     'gestures_navigation',
     'data',
     'render_option.json'
@@ -49,7 +52,7 @@ RENDER_OPTION = os.path.join(
 CAMERAS_DIR = ('cam_center', 'cam_right', 'cam_left')
 
 CALIBRATION_DIR = os.path.join(
-    os.path.dirname(SAVE_DIR),
+    os.path.dirname(PC_DATA_DIR),
     'gestures_navigation',
     'data',
     'calib_params',
@@ -73,6 +76,8 @@ def main():
     utils.estimate_execution_resources(PC_DATA_DIR, GESTURES_SET)
 
     visualizer = utils_o3d.get_visualizer(image_size, RENDER_OPTION)
+    rgb_to_pil = T.ToPILImage(mode='RGB')
+    depth_to_pil = T.ToPILImage(mode='L')
 
     angle = np.deg2rad(-30)
     z_target = 1.25
@@ -84,12 +89,12 @@ def main():
         batch_size,
         intrinsics[0],
         visualizer,
-        RENDER_OPTION,
         angle=angle,
         z_target=z_target,
         loc=loc,
         scale=scale,
-        image_size=None,
+        rgb_transforms=None,
+        depth_transforms=None,
     )
 
     for participant in glob.glob(os.path.join(PC_DATA_DIR, 'G*')):
@@ -115,16 +120,20 @@ def main():
                     for pc_path in pc_paths:
                         rendered_image = img_transforms(pc_path, 0)
 
-                        rgb_image = rendered_image[:3, :, :].permute(1, 2, 0).contiguous()
-                        depth_image = rendered_image[3:, :, :].permute(1, 2, 0).contiguous()
+                        rgb_image = rendered_image[:3, :, :]
+                        depth_image = rendered_image[3:, :, :]
 
-                        utils_o3d.write_image(
-                            os.path.splitext(pc_path)[0] + '.jpg',
-                            (rgb_image * 255).numpy().astype(np.uint8),
+                        depth_max = depth_image.max()
+                        depth_image = (depth_image / depth_max * 255).type(torch.uint8)
+                        depth_metadata = PngIP.PngInfo()
+                        depth_metadata.add_text('MaxDepth', str(depth_max.item()))
+
+                        rgb_to_pil(rgb_image).save(
+                            os.path.join(save_dir, os.path.splitext(os.path.basename(pc_path))[0]) + '.jpg',
                         )
-                        utils_o3d.write_image(
-                            os.path.splitext(pc_path)[0] + '.png',
-                            (depth_image * 255).numpy().astype(np.uint8),
+                        depth_to_pil(depth_image).save(
+                            os.path.join(save_dir, os.path.splitext(os.path.basename(pc_path))[0]) + '.png',
+                            pnginfo=depth_metadata,
                         )
 
     visualizer.destroy_window()

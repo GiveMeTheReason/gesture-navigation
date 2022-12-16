@@ -3,73 +3,134 @@ import typing as tp
 
 import numpy as np
 import torch
-import torchvision.transforms as transforms
+import torchvision.transforms as T
+from PIL import Image
 
 import open3d as o3d
 import utils.utils as utils
 
 image_sizeT = tp.Tuple[int, int]
-nearest = transforms.InterpolationMode.NEAREST
+nearest = T.InterpolationMode.NEAREST
+
+MEAN = [0.485, 0.456, 0.406]
+STD = [0.229, 0.224, 0.225]
+
+class TrainRGBTransforms():
+    def __init__(
+        self,
+        target_size: image_sizeT,
+        mean: tp.List[float] = MEAN,
+        std: tp.List[float] = STD,
+    ) -> None:
+        self.transforms = T.Compose([
+            T.Resize(
+                target_size,
+                interpolation=nearest,
+            ),
+            T.Normalize(
+                mean=mean,
+                std=std,
+            ),
+            # T.RandomHorizontalFlip(
+            #     p=0.5,
+            # ),
+            # T.RandomAffine(
+            #     degrees=30,
+            #     translate=(0.3, 0.3),
+            #     scale=(0.7, 1.3),
+            #     interpolation=nearest,
+            # ),
+            # T.RandomPerspective(
+            #     distortion_scale=0.4,
+            #     p=0.5,
+            #     interpolation=nearest,
+            # ),
+        ])
+
+    def __call__(self, tensor: torch.Tensor) -> torch.Tensor:
+        return self.transforms(tensor)
+
+
+class TrainDepthTransforms():
+    def __init__(
+        self,
+        target_size: image_sizeT,
+        with_inverse: bool = False,
+    ) -> None:
+        self.transforms = T.Compose([
+            T.Resize(
+                target_size,
+                interpolation=nearest,
+            ),
+            NormalizeDepth(
+                with_inverse=with_inverse,
+            ),
+        ])
+
+    def __call__(self, tensor: torch.Tensor) -> torch.Tensor:
+        return self.transforms(tensor)
+
+
+class TestRGBTransforms():
+    def __init__(
+        self,
+        target_size: image_sizeT,
+        mean: tp.List[float] = MEAN,
+        std: tp.List[float] = STD,
+    ) -> None:
+        self.transforms = T.Compose([
+            T.Resize(
+                target_size,
+                interpolation=nearest,
+            ),
+            T.Normalize(
+                mean=mean,
+                std=std,
+            ),
+        ])
+
+    def __call__(self, tensor: torch.Tensor) -> torch.Tensor:
+        return self.transforms(tensor)
+
+
+class TestDepthTransforms():
+    def __init__(
+        self,
+        target_size: image_sizeT,
+        with_inverse: bool = False,
+    ) -> None:
+        self.transforms = T.Compose([
+            T.Resize(
+                target_size,
+                interpolation=nearest,
+            ),
+            NormalizeDepth(
+                with_inverse=with_inverse,
+            ),
+        ])
+
+    def __call__(self, tensor: torch.Tensor) -> torch.Tensor:
+        return self.transforms(tensor)
 
 
 class NormalizeDepth():
-    def __call__(self, tensor: torch.Tensor) -> torch.Tensor:
-        mask = tensor > 0
-        tensor_min = tensor[mask].min()
-        tensor_max = tensor.max()
-        res_tensor = torch.zeros_like(tensor)
-        res_tensor[mask] = 1 - (tensor[mask] - tensor_min) / (tensor_max - tensor_min)
-        return res_tensor
-
-
-class TrainTransforms():
-    def __init__(
-        self,
-        target_size: image_sizeT = (72, 96),
-    ) -> None:
-        self.transforms = transforms.Compose([
-            # transforms.ToTensor(),
-            transforms.Resize(
-                target_size,
-                interpolation=nearest,
-            ),
-            transforms.RandomHorizontalFlip(
-                p=0.5,
-            ),
-            transforms.RandomAffine(
-                degrees=30,
-                translate=(0.3, 0.3),
-                scale=(0.7, 1.3),
-                interpolation=nearest,
-            ),
-            transforms.RandomPerspective(
-                distortion_scale=0.4,
-                p=0.5,
-                interpolation=nearest,
-            ),
-            NormalizeDepth()
-        ])
+    def __init__(self, with_inverse: bool = False) -> None:
+        self.with_inverse = with_inverse
 
     def __call__(self, tensor: torch.Tensor) -> torch.Tensor:
-        return self.transforms(tensor)
+        if len(tensor.shape) == 3 and tensor.shape[0] == 4:
+            depth_tensor = tensor[3:]
+        else:
+            depth_tensor = tensor
 
-
-class TestTransforms():
-    def __init__(
-        self,
-        target_size: image_sizeT = (72, 96),
-    ) -> None:
-        self.transforms = transforms.Compose([
-            # transforms.ToTensor(),
-            transforms.Resize(
-                target_size,
-                interpolation=nearest,
-            ),
-            NormalizeDepth()
-        ])
-
-    def __call__(self, tensor: torch.Tensor) -> torch.Tensor:
-        return self.transforms(tensor)
+        mask = depth_tensor > 0
+        tensor_min = depth_tensor[mask].min()
+        tensor_max = depth_tensor.max()
+        if self.with_inverse:
+            depth_tensor[mask] = 1 - (depth_tensor[mask] - tensor_min) / (tensor_max - tensor_min)
+        else:
+            depth_tensor[mask] = (depth_tensor[mask] - tensor_min) / (tensor_max - tensor_min)
+        return tensor
 
 
 class PointCloudToRGBD():
@@ -78,37 +139,31 @@ class PointCloudToRGBD():
         batch_size: int,
         intrinsics: tp.List[float],
         visualizer: o3d.visualization.Visualizer,
-        render_option_path: str,
         angle: float = 0.0,
         z_target: float = 1.0,
         loc: float = 0.0,
         scale: float = 1.0,
-        image_size: tp.Optional[image_sizeT] = None,
+        rgb_transforms: tp.Optional[T.Compose] = None,
+        depth_transforms: tp.Optional[T.Compose] = None,
     ) -> None:
+        self.rgb_transforms = rgb_transforms
+        self.depth_transforms = depth_transforms
+
         self.intrinsics = intrinsics
         self.visualizer = visualizer
-        self.render_option_path = render_option_path
 
-        self.angle = angle
-        self.z_target = z_target
         self.loc = loc
         self.scale = scale
 
-        self.resize = transforms.Resize(image_size, transforms.InterpolationMode.NEAREST) if image_size is not None else image_size
+        self.prev_path = [''] * batch_size
 
-        self.intrinsic_matrix = utils.build_intrinsic_matrix(*self.intrinsics[2:])
-
-        self.base_extrinsic_matrix = utils.build_extrinsic_matrix(self.angle, self.z_target)
-        self.extrinsic_matrix = self.base_extrinsic_matrix
-
-        self.camera = o3d.camera.PinholeCameraParameters()
-
-        self.camera.extrinsic = np.linalg.inv(self.extrinsic_matrix)
-
+        self.base_extrinsic_matrix = utils.build_extrinsic_matrix(angle, z_target)
         self.extrinsics = [utils.randomize_extrinsic(
                 self.base_extrinsic_matrix, self.loc, self.scale
             ) for _ in range(batch_size)]
-        self.prev_path = [''] * batch_size
+
+        self.camera = o3d.camera.PinholeCameraParameters()
+        self.camera.extrinsic = np.linalg.inv(self.base_extrinsic_matrix)
 
         to_filter = [1, 1, 0, 0, 0, 0]
         self.camera.intrinsic = o3d.camera.PinholeCameraIntrinsic(
@@ -118,22 +173,13 @@ class PointCloudToRGBD():
 
         self.view_control = self.visualizer.get_view_control()
 
-    @property
-    def refresh(self) -> None:
-        self.extrinsic_matrix = utils.randomize_extrinsic(
-            self.base_extrinsic_matrix, self.loc, self.scale
-        )
-
-        self.camera.extrinsic = np.linalg.inv(self.extrinsic_matrix)
-
-    def __call__(self, pc_path: str, batch_idx: int) -> torch.Tensor:
+    def _refresh_extrinsic(self, pc_path: str, batch_idx: int) -> None:
         if os.path.dirname(pc_path) != self.prev_path[batch_idx]:
             self.prev_path[batch_idx] = os.path.dirname(pc_path)
             self.extrinsics[batch_idx] = utils.randomize_extrinsic(
                 self.base_extrinsic_matrix, self.loc, self.scale)
 
-        pc = o3d.io.read_point_cloud(pc_path)
-
+    def _get_rgb(self, pc: o3d.geometry.PointCloud, batch_idx: int) -> torch.Tensor:
         self.camera.extrinsic = self.extrinsics[batch_idx]
         self.visualizer.add_geometry(pc)
         self.view_control.convert_from_pinhole_camera_parameters(self.camera, True)
@@ -143,18 +189,13 @@ class PointCloudToRGBD():
                 np.asarray(
                     self.visualizer.capture_screen_float_buffer(do_render=True)
                 )
-            )
+            ).permute(2, 0, 1)
         self.visualizer.clear_geometries()
 
+        return rendered_image
 
-        # image_background = torch.rand(
-        #     (*map(int, self.intrinsics[1::-1]), 3)
-        # )
-        image_background = torch.zeros((*map(int, self.intrinsics[1::-1]), 3))
-        rendered_image = torch.where(rendered_image == torch.zeros(3), image_background, rendered_image).permute(2, 0, 1)
-
-
-        image_size = (720, 1280)
+    def _get_depth(self, pc: o3d.geometry.PointCloud) -> torch.Tensor:
+        *image_size, = map(int, self.intrinsics[1::-1])
         K = np.eye(4)
         K[:3, :3] = self.camera.intrinsic.intrinsic_matrix
         T = self.camera.extrinsic
@@ -183,17 +224,33 @@ class PointCloudToRGBD():
             depth_projected[:, 1].astype(np.int16),
             depth_projected[:, 0].astype(np.int16)] = depth_projected[:, 2]
 
-        mask = depth_on_image > 1.0
-        tensor_min = depth_on_image[mask].min()
-        tensor_max = depth_on_image.max()
-        depth_on_image[mask] = 1 - (depth_on_image[mask] - tensor_min) / (tensor_max - tensor_min)
-
         depth_on_image = torch.unsqueeze(torch.from_numpy(depth_on_image), 0)
 
-        rendered_image = torch.cat((rendered_image, depth_on_image), 0)
+        return depth_on_image
 
-        if self.resize is not None:
-            rendered_image = self.resize(rendered_image)
+    def __call__(self, pc_path: str, batch_idx: int) -> torch.Tensor:
+        self._refresh_extrinsic(pc_path, batch_idx)
+
+        pc = o3d.io.read_point_cloud(pc_path)
+
+        image_rgb = self._get_rgb(pc, batch_idx)
+        image_depth = self._get_depth(pc)
+
+        # image_background = torch.rand(
+        #     (3, *map(int, self.intrinsics[1::-1]))
+        # )
+        # image_background = torch.zeros((3, *map(int, self.intrinsics[1::-1])))
+        # image_rgb = torch.where(image_rgb == torch.zeros(3), image_background, image_rgb)
+
+        if self.rgb_transforms:
+            image_rgb = self.rgb_transforms(image_rgb)
+        if self.depth_transforms:
+            image_depth = self.depth_transforms(image_depth)
+
+        rendered_image = torch.cat((
+            image_rgb,
+            image_depth,
+        ), 0)
 
         return rendered_image
 
@@ -201,32 +258,36 @@ class PointCloudToRGBD():
 class RGBDepthToRGBD():
     def __init__(
         self,
-        image_size: tp.Optional[image_sizeT] = None,
+        rgb_transforms: tp.Optional[T.Compose] = None,
+        depth_transforms: tp.Optional[T.Compose] = None,
     ) -> None:
-        self.resize = transforms.Resize(
-            image_size, transforms.InterpolationMode.NEAREST
-        ) if image_size is not None else image_size
+        self.rgb_transforms = rgb_transforms
+        self.depth_transforms = depth_transforms
 
-    def __call__(self, pc_path: str, batch_idx: int) -> torch.Tensor:
+        self.pil_to_tensor = T.PILToTensor()
+
+    def __call__(self, pc_path: str, batch_idx: int = -1) -> torch.Tensor:
         pc_path_jpg = pc_path
         pc_path_png = os.path.join(os.path.splitext(pc_path)[0] + '.png')
 
-        image_rgb = o3d.io.read_image(pc_path_jpg)
-        image_depth = o3d.io.read_image(pc_path_png)
+        pil_rgb = Image.open(pc_path_jpg)
+        pil_depth = Image.open(pc_path_png)
+
+        image_rgb = self.pil_to_tensor(pil_rgb) / 255
+        image_depth = self.pil_to_tensor(pil_depth) / 255 * float(pil_depth.text.get('MaxDepth', 1))
 
         # image_background = torch.rand(
         #     (*map(int, self.intrinsics[1::-1]), 3)
         # )
 
-        rendered_image = torch.cat(
-            (
-                torch.from_numpy(np.asarray(image_rgb)).permute(2, 0, 1),
-                torch.unsqueeze(torch.from_numpy(np.asarray(image_depth)), 0),
-            ),
-            0,
-        )
+        if self.rgb_transforms:
+            image_rgb = self.rgb_transforms(image_rgb)
+        if self.depth_transforms:
+            image_depth = self.depth_transforms(image_depth)
 
-        if self.resize is not None:
-            rendered_image = self.resize(rendered_image)
+        rendered_image = torch.cat((
+            image_rgb,
+            image_depth,
+        ), 0)
 
         return rendered_image

@@ -54,8 +54,6 @@ class HandGesturesDataset(IterableDataset):
         self.target_fps = target_fps
 
         self.with_rejection = with_rejection
-        if with_rejection:
-            self.label_map['no_gesture'] = len(label_map)
 
         if not isinstance(data_type, AllowedDatasets):
             raise Exception('Unknown data_type for dataset')
@@ -81,18 +79,23 @@ class HandGesturesDataset(IterableDataset):
 
         paths = sorted(glob.glob(os.path.join(path, self.data_type.value)))
 
-        for i, pc_path in enumerate(paths):
+        for pc_path in paths:
+            idx = int(os.path.splitext(os.path.basename(pc_path))[0])
             current_frame += self.target_fps
             while current_frame >= self.base_fps:
                 current_frame -= self.base_fps
+                current_flg = (label_start <= idx <= label_finish)
+                current_label = label * current_flg
 
-                if not self.with_rejection and not (label_start <= i <= label_finish):
+                if not self.with_rejection and not current_flg:
                     continue
+                elif not current_flg:
+                    current_label = self.label_map['no_gesture']
 
                 pc = pc_path
                 if self.transforms is not None:
                     pc = self.transforms(pc, batch_idx)
-                yield pc, label * (label_start <= i <= label_finish)
+                yield pc, current_label
 
     def get_stream(self, data_list: tp.List[str], batch_idx: int):
         return itertools.chain.from_iterable(

@@ -16,7 +16,7 @@ import utils.utils_o3d as utils_o3d
 
 
 def main():
-    exp_id = '02'
+    exp_id = '01'
     log_filename = os.path.join('outputs', f'train_log{exp_id}.txt')
     checkpoint_path = os.path.join('outputs', f'checkpoint{exp_id}.pth')
 
@@ -65,6 +65,8 @@ def main():
     main_camera_index = 0
 
     label_map = {gesture: i for i, gesture in enumerate(GESTURES_SET)}
+    if with_rejection:
+        label_map['no_gesture'] = len(label_map)
 
     batch_size = 12
     max_workers = 2
@@ -103,15 +105,16 @@ def main():
         batch_size,
         intrinsics,
         visualizer,
-        RENDER_OPTION,
         angle=angle,
         z_target=z_target,
         loc=loc,
         scale=scale,
-        image_size=resized_image_size,
+        rgb_transforms=transforms.TrainRGBTransforms(resized_image_size),
+        depth_transforms=transforms.TrainDepthTransforms(resized_image_size, with_inverse=True),
     )
     rgb_depth_to_rgb = transforms.RGBDepthToRGBD(
-        resized_image_size,
+        rgb_transforms=transforms.TestRGBTransforms(resized_image_size),
+        depth_transforms=transforms.TestDepthTransforms(resized_image_size, with_inverse=True),
     )
 
     data_list = [

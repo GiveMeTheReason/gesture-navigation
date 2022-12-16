@@ -14,7 +14,7 @@ import model.transforms as transforms
 
 
 def main():
-    exp_id = '02'
+    exp_id = '01'
     log_filename = os.path.join('outputs', f'train_log{exp_id}.txt')
     checkpoint_path = os.path.join('outputs', f'checkpoint{exp_id}.pth')
 
@@ -41,13 +41,15 @@ def main():
     )
 
     label_map = {gesture: i for i, gesture in enumerate(GESTURES_SET)}
+    if with_rejection:
+        label_map['no_gesture'] = len(label_map)
 
-    batch_size = 2
+    batch_size = 12
     max_workers = 2
 
     frames = 1
     base_fps = 30
-    target_fps = 30
+    target_fps = 5
     resized_image_size = (72, 128)
 
     lr = 1e-4
@@ -61,8 +63,13 @@ def main():
     np.random.seed(seed)
     torch.manual_seed(seed)
 
-    rgb_depth_to_rgb = transforms.RGBDepthToRGBD(
-        resized_image_size,
+    train_rgb_depth_to_rgb = transforms.RGBDepthToRGBD(
+        rgb_transforms=transforms.TrainRGBTransforms(resized_image_size),
+        depth_transforms=transforms.TrainDepthTransforms(resized_image_size, with_inverse=True),
+    )
+    test_rgb_depth_to_rgb = transforms.RGBDepthToRGBD(
+        rgb_transforms=transforms.TestRGBTransforms(resized_image_size),
+        depth_transforms=transforms.TestDepthTransforms(resized_image_size, with_inverse=True),
     )
 
     data_list = [
@@ -82,7 +89,7 @@ def main():
         max_workers=max_workers,
         path_list=train_list,
         label_map=label_map,
-        transforms=rgb_depth_to_rgb,
+        transforms=train_rgb_depth_to_rgb,
         base_fps=base_fps,
         target_fps=target_fps,
         data_type=loader.AllowedDatasets.PROXY,
@@ -96,7 +103,7 @@ def main():
         max_workers=max_workers,
         path_list=test_list,
         label_map=label_map,
-        transforms=rgb_depth_to_rgb,
+        transforms=test_rgb_depth_to_rgb,
         base_fps=base_fps,
         target_fps=target_fps,
         data_type=loader.AllowedDatasets.PROXY,
