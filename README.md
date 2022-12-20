@@ -1,4 +1,4 @@
-# gestures_navigation
+# gestures-navigation
 
 ## Requirements
 
