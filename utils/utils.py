@@ -11,7 +11,7 @@ import numpy as np
 def estimate_execution_resources(
     dataset_dir: str,
     gestures_set: set,
-    is_proxy: False,
+    is_proxy: bool = False,
 ) -> None:
     """
     Prints estimated time and memory for processing the dataset
@@ -29,10 +29,12 @@ def estimate_execution_resources(
 
     counter = 0
     for gesture in gestures_set:
-        counter += len(glob.glob(os.path.join(dataset_dir, 'G*', gesture, '*', 'trial*')))
+        counter += len(glob.glob(os.path.join(dataset_dir,
+                       'G*', gesture, '*', 'trial*')))
     print(f'Total count of trials: {counter}')
     print(f'Estimated memory usage: {round(counter * mem_mult / 1024, 2)} GB')
-    print(f'Estimated processing time: {round(counter * time_mult / 3600, 2)} hours')
+    print(
+        f'Estimated processing time: {round(counter * time_mult / 3600, 2)} hours')
 
 
 def build_intrinsic_matrix(
@@ -143,8 +145,10 @@ def get_extrinsics(filenames):
             data = json.load(json_file)
 
         T = np.eye(4)
-        T[:3, :3] = np.array(data['CalibrationInformation']['Cameras'][1]['Rt']['Rotation']).reshape(3, 3)
-        T[:3, 3] = np.array(data['CalibrationInformation']['Cameras'][1]['Rt']['Translation'])
+        T[:3, :3] = np.array(data['CalibrationInformation']
+                             ['Cameras'][1]['Rt']['Rotation']).reshape(3, 3)
+        T[:3, 3] = np.array(data['CalibrationInformation']
+                            ['Cameras'][1]['Rt']['Translation'])
 
         extrinsics[i] = T
 
@@ -171,7 +175,8 @@ def randomize_extrinsic(
     T = mrob.geometry.SE3(extrinsic_matrix)
 
     randomized_vector = np.random.normal(loc=loc, scale=scale)
-    randomized_extrinsic_matrix = (mrob.geometry.SE3(randomized_vector) * T).T()
+    randomized_extrinsic_matrix = (
+        mrob.geometry.SE3(randomized_vector) * T).T()
 
     return randomized_extrinsic_matrix
 
@@ -179,7 +184,7 @@ def randomize_extrinsic(
 def find_timestamp(s):
     """
     Returns indexes of start and the end (negative) of the longest numerical sequence
-    
+
     Parameters:
     s (str): string with numerical timestamp
 
@@ -188,7 +193,7 @@ def find_timestamp(s):
     """
     longest = max(re.findall(r'\d+', s), key=len)
     start = s.find(longest)
-    
+
     timestamp_index = [start, start + len(longest) - len(s)]
 
     return timestamp_index
@@ -211,13 +216,16 @@ def map_nearest(cameras_filenames, main_camera_index=0):
     """
     assert all(cameras_filenames)
 
-    nearest = np.zeros((len(cameras_filenames[main_camera_index]), len(cameras_filenames)), dtype=np.int64)
+    nearest = np.zeros((len(cameras_filenames[main_camera_index]), len(
+        cameras_filenames)), dtype=np.int64)
     pointers = np.zeros(len(cameras_filenames), dtype=np.int64)
 
-    patterns = np.array([find_timestamp(filenames[0]) for filenames in cameras_filenames], dtype=np.int64)
+    patterns = np.array([find_timestamp(filenames[0])
+                        for filenames in cameras_filenames], dtype=np.int64)
 
     for i, main_filename in enumerate(cameras_filenames[main_camera_index]):
-        now = int(main_filename[patterns[main_camera_index, 0]:patterns[main_camera_index, 1]])
+        now = int(
+            main_filename[patterns[main_camera_index, 0]:patterns[main_camera_index, 1]])
 
         for j, (pointer, filenames) in enumerate(zip(pointers, cameras_filenames)):
             now_camera = int(filenames[pointer][patterns[j, 0]:patterns[j, 1]])
@@ -225,7 +233,8 @@ def map_nearest(cameras_filenames, main_camera_index=0):
             while pointer + 1 < len(filenames) and \
                     now - now_camera > int(filenames[pointer + 1][patterns[j, 0]:patterns[j, 1]]) - now:
                 pointer += 1
-                now_camera = int(filenames[pointer][patterns[j, 0]:patterns[j, 1]])
+                now_camera = int(filenames[pointer]
+                                 [patterns[j, 0]:patterns[j, 1]])
 
             nearest[i, j] = pointer
 

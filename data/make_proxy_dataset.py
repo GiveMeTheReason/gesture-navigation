@@ -22,10 +22,15 @@ GESTURES_SET = (
 #     'HuaweiGesturesDataset',
 #     'undistorted'
 # )
+# PC_DATA_DIR = os.path.join(
+#     'D:\\',
+#     'GesturesNavigation',
+#     'dataset',
+# )
 PC_DATA_DIR = os.path.join(
-    'D:\\',
-    'GesturesNavigation',
-    'dataset',
+    '/root',
+    'project',
+    'gestures_dataset_processed',
 )
 
 # SAVE_DIR = os.path.join(
@@ -35,10 +40,15 @@ PC_DATA_DIR = os.path.join(
 #     'pc_data',
 #     'dataset',
 # )
+# SAVE_DIR = os.path.join(
+#     'D:\\',
+#     'GesturesNavigation',
+#     'dataset',
+# )
 SAVE_DIR = os.path.join(
-    'D:\\',
-    'GesturesNavigation',
-    'dataset',
+    '/root',
+    'project',
+    'gestures_dataset_processed',
 )
 
 # RENDER_OPTION = 'render_option.json'
@@ -73,7 +83,8 @@ def main():
 
     batch_size = 1
 
-    utils.estimate_execution_resources(PC_DATA_DIR, GESTURES_SET, is_proxy=True)
+    utils.estimate_execution_resources(
+        PC_DATA_DIR, GESTURES_SET, is_proxy=True)
 
     visualizer = utils_o3d.get_visualizer(image_size, RENDER_OPTION)
     rgb_to_pil = T.ToPILImage(mode='RGB')
@@ -118,21 +129,28 @@ def main():
                         os.makedirs(save_dir)
 
                     for pc_path in pc_paths:
+                        base_filename = os.path.join(
+                            save_dir, os.path.splitext(os.path.basename(pc_path))[0])
+                        if os.path.exists(base_filename + '.jpg') and os.path.exists(base_filename + '.png'):
+                            continue
+
                         rendered_image = img_transforms(pc_path, 0)
 
                         rgb_image = rendered_image[:3, :, :]
                         depth_image = rendered_image[3:, :, :]
 
                         depth_max = depth_image.max()
-                        depth_image = (depth_image / depth_max * 255).type(torch.uint8)
+                        depth_image = (depth_image / depth_max *
+                                       255).type(torch.uint8)
                         depth_metadata = PngIP.PngInfo()
-                        depth_metadata.add_text('MaxDepth', str(depth_max.item()))
+                        depth_metadata.add_text(
+                            'MaxDepth', str(depth_max.item()))
 
                         rgb_to_pil(rgb_image).save(
-                            os.path.join(save_dir, os.path.splitext(os.path.basename(pc_path))[0]) + '.jpg',
+                            base_filename + '.jpg',
                         )
                         depth_to_pil(depth_image).save(
-                            os.path.join(save_dir, os.path.splitext(os.path.basename(pc_path))[0]) + '.png',
+                            base_filename + '.png',
                             pnginfo=depth_metadata,
                         )
 

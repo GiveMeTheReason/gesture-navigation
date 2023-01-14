@@ -1,0 +1,32 @@
+version: '3.4'
+
+services:
+  gesturesnavigation:
+    image: gesturesnavigation
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      args:
+        DEVELOPER_BUILD: "OFF"
+        CCACHE_TAR_NAME: "open3d-ubuntu-1804-cuda-ci-ccache"
+        CMAKE_VERSION: "cmake-3.20.6-linux-x86_64"
+        CCACHE_VERSION: "4.3"
+        PYTHON_VERSION: "3.9"
+        BUILD_SHARED_LIBS: "OFF"
+        BUILD_CUDA_MODULE: "ON"
+        BUILD_TENSORFLOW_OPS: "OFF"
+        BUILD_PYTORCH_OPS: "OFF"
+        PACKAGE: "OFF"
+        BUILD_SYCL_MODULE: "OFF"
+        BUILD_HEADLESS: "ON"
+    volumes:
+      - ${DATASET_PATH}:/root/project/gestures_dataset_initial:ro
+      - ${PROCESSED_DATASET_PATH}:/root/project/gestures_dataset_processed
+      # - type: bind
+      #   source: ${DATASET_PATH}
+      #   target: /home/project/gestures_dataset_initial
+      #   read_only: true
+
+volumes:
+  gestures_dataset_initial:
+  gestures_dataset_processed:

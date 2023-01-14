@@ -19,10 +19,15 @@ GESTURES_SET = (
 #     'HuaweiGesturesDataset',
 #     'undistorted'
 # )
+# PC_DATA_DIR = os.path.join(
+#     'D:\\',
+#     'GesturesNavigation',
+#     'dataset',
+# )
 PC_DATA_DIR = os.path.join(
-    'D:\\',
-    'GesturesNavigation',
-    'dataset',
+    '/root',
+    'project',
+    'gestures_dataset_initial',
 )
 
 # SAVE_DIR = os.path.join(
@@ -32,10 +37,15 @@ PC_DATA_DIR = os.path.join(
 #     'pc_data',
 #     'dataset',
 # )
+# SAVE_DIR = os.path.join(
+#     'D:\\',
+#     'GesturesNavigation',
+#     'dataset',
+# )
 SAVE_DIR = os.path.join(
-    'D:\\',
-    'GesturesNavigation',
-    'dataset',
+    '/root',
+    'project',
+    'gestures_dataset_processed',
 )
 
 # RENDER_OPTION = 'render_option.json'
@@ -89,7 +99,8 @@ def main():
                     if not images_paths:
                         continue
 
-                    mapped_indexes = utils.map_nearest(images_paths, main_camera_index)
+                    mapped_indexes = utils.map_nearest(
+                        images_paths, main_camera_index)
 
                     save_dir = os.path.join(
                         SAVE_DIR,
@@ -116,13 +127,16 @@ def main():
                         point_clouds = utils_o3d.create_point_clouds(
                             rgbd_images,
                             intrinsics[::2],
-                            np.concatenate([[np.eye(4)], extrinsics[:len(CAMERAS_DIR) - 1]])
+                            np.concatenate(
+                                [[np.eye(4)], extrinsics[:len(CAMERAS_DIR) - 1]])
                         )
 
-                        pc_concatenated = utils_o3d.concatenate_point_clouds(point_clouds)
+                        pc_concatenated = utils_o3d.concatenate_point_clouds(
+                            point_clouds)
 
                         # Filter outliers
-                        pc_concatenated, _ = pc_concatenated.remove_radius_outlier(10, 0.01)
+                        pc_concatenated, _ = pc_concatenated.remove_radius_outlier(
+                            10, 0.01)
 
                         utils_o3d.write_point_cloud(
                             os.path.join(

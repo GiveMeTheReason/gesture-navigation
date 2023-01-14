@@ -34,10 +34,15 @@ GESTURES_PARAMS = {
 #     'pc_data',
 #     'dataset'
 # )
+# SAVE_DIR = os.path.join(
+#     'D:\\',
+#     'GesturesNavigation',
+#     'dataset',
+# )
 SAVE_DIR = os.path.join(
-    'D:\\',
-    'GesturesNavigation',
-    'dataset',
+    '/root',
+    'project',
+    'gestures_dataset_processed',
 )
 
 
@@ -52,10 +57,13 @@ def main():
 
                     for pc_path in pc_paths:
                         pc = utils_o3d.read_point_cloud(pc_path)
-                        centers.append(pc.get_center()[GESTURES_PARAMS[gesture]['coord']])
+                        centers.append(pc.get_center()[
+                                       GESTURES_PARAMS[gesture]['coord']])
 
-                    threshold_start = (centers[0] - min(centers)) * GESTURES_PARAMS[gesture]['ratio'] + min(centers)
-                    threshold_finish = (centers[-1] - min(centers)) * GESTURES_PARAMS[gesture]['ratio'] + min(centers)
+                    threshold_start = (
+                        centers[0] - min(centers)) * GESTURES_PARAMS[gesture]['ratio'] + min(centers)
+                    threshold_finish = (
+                        centers[-1] - min(centers)) * GESTURES_PARAMS[gesture]['ratio'] + min(centers)
 
                     for i in range(len(centers)):
                         if centers[i] < threshold_start:
