@@ -15,8 +15,20 @@ import model.transforms as transforms
 
 def main():
     exp_id = '01'
-    log_filename = os.path.join('outputs', f'train_log{exp_id}.txt')
-    checkpoint_path = os.path.join('outputs', f'checkpoint{exp_id}.pth')
+    # log_filename = os.path.join('outputs', f'train_log{exp_id}.txt')
+    # checkpoint_path = os.path.join('outputs', f'checkpoint{exp_id}.pth')
+    log_filename = os.path.join(
+        '/root',
+        'project',
+        'outputs',
+        f'train_log{exp_id}.txt',
+    )
+    checkpoint_path = os.path.join(
+        '/root',
+        'project',
+        'outputs',
+        f'checkpoint{exp_id}.pth',
+    )
 
     seed = 0
     device = 'cpu' if not torch.cuda.is_available() else 'cuda'
@@ -34,10 +46,15 @@ def main():
     #     'pc_data',
     #     'dataset',
     # )
+    # PC_DATA_DIR = os.path.join(
+    #     'D:\\',
+    #     'GesturesNavigation',
+    #     'dataset',
+    # )
     PC_DATA_DIR = os.path.join(
-        'D:\\',
-        'GesturesNavigation',
-        'dataset',
+        '/root',
+        'project',
+        'gestures_dataset_processed',
     )
 
     label_map = {gesture: i for i, gesture in enumerate(GESTURES_SET)}
@@ -65,11 +82,13 @@ def main():
 
     train_rgb_depth_to_rgb = transforms.RGBDepthToRGBD(
         rgb_transforms=transforms.TrainRGBTransforms(resized_image_size),
-        depth_transforms=transforms.TrainDepthTransforms(resized_image_size, with_inverse=True),
+        depth_transforms=transforms.TrainDepthTransforms(
+            resized_image_size, with_inverse=True),
     )
     test_rgb_depth_to_rgb = transforms.RGBDepthToRGBD(
         rgb_transforms=transforms.TestRGBTransforms(resized_image_size),
-        depth_transforms=transforms.TestDepthTransforms(resized_image_size, with_inverse=True),
+        depth_transforms=transforms.TestDepthTransforms(
+            resized_image_size, with_inverse=True),
     )
 
     data_list = [
@@ -78,7 +97,8 @@ def main():
     ]
     train_len = int(0.75 * len(data_list))
     test_len = len(data_list) - train_len
-    train_list, test_list = map(list, torch.utils.data.random_split(data_list, [train_len, test_len]))
+    train_list, test_list = map(
+        list, torch.utils.data.random_split(data_list, [train_len, test_len]))
 
     # train_list = train_list[:1]
     # test_list = test_list[:1]
@@ -95,7 +115,8 @@ def main():
         data_type=loader.AllowedDatasets.PROXY,
         with_rejection=with_rejection,
     )
-    train_loader = loader.MultiStreamDataLoader(train_datasets, image_size=resized_image_size, num_workers=1)
+    train_loader = loader.MultiStreamDataLoader(
+        train_datasets, image_size=resized_image_size, num_workers=1)
 
     test_datasets = loader.split_datasets(
         loader.HandGesturesDataset,
@@ -109,7 +130,8 @@ def main():
         data_type=loader.AllowedDatasets.PROXY,
         with_rejection=with_rejection,
     )
-    test_loader = loader.MultiStreamDataLoader(test_datasets, image_size=resized_image_size, num_workers=1)
+    test_loader = loader.MultiStreamDataLoader(
+        test_datasets, image_size=resized_image_size, num_workers=1)
 
     model = model_cnn.CNNClassifier(
         resized_image_size,
@@ -122,7 +144,8 @@ def main():
     if os.path.exists(checkpoint_path):
         model.load_state_dict(torch.load(checkpoint_path))
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
+    optimizer = torch.optim.Adam(
+        model.parameters(), lr=lr, weight_decay=weight_decay)
     loss_func = losses.CrossEntropyLoss(weight=weight)
     loss_func.to(device)
 

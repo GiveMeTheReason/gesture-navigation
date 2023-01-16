@@ -20,14 +20,14 @@ GESTURES_SET = (
 #     'dataset',
 # )
 # PC_DATA_DIR = os.path.join(
-#     '/root',
-#     'project',
-#     'gestures_dataset_processed',
+#     os.path.expanduser('~'),
+#     'personal',
+#     'gestures_dataset',
 # )
 PC_DATA_DIR = os.path.join(
-    os.path.expanduser('~'),
-    'personal',
-    'gestures_dataset',
+    '/root',
+    'project',
+    'gestures_dataset_processed',
 )
 
 random.seed(0)

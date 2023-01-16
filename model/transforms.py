@@ -2,11 +2,11 @@ import os
 import typing as tp
 
 import numpy as np
+import open3d as o3d
 import torch
 import torchvision.transforms as T
 from PIL import Image
 
-import open3d as o3d
 import utils.utils as utils
 
 image_sizeT = tp.Tuple[int, int]
@@ -14,6 +14,7 @@ nearest = T.InterpolationMode.NEAREST
 
 MEAN = [0.485, 0.456, 0.406]
 STD = [0.229, 0.224, 0.225]
+
 
 class TrainRGBTransforms():
     def __init__(
@@ -127,9 +128,11 @@ class NormalizeDepth():
         tensor_min = depth_tensor[mask].min()
         tensor_max = depth_tensor.max()
         if self.with_inverse:
-            depth_tensor[mask] = 1 - (depth_tensor[mask] - tensor_min) / (tensor_max - tensor_min)
+            depth_tensor[mask] = 1 - (depth_tensor[mask] -
+                                      tensor_min) / (tensor_max - tensor_min)
         else:
-            depth_tensor[mask] = (depth_tensor[mask] - tensor_min) / (tensor_max - tensor_min)
+            depth_tensor[mask] = (depth_tensor[mask] -
+                                  tensor_min) / (tensor_max - tensor_min)
         return tensor
 
 
@@ -157,10 +160,11 @@ class PointCloudToRGBD():
 
         self.prev_path = [''] * batch_size
 
-        self.base_extrinsic_matrix = utils.build_extrinsic_matrix(angle, z_target)
+        self.base_extrinsic_matrix = utils.build_extrinsic_matrix(
+            angle, z_target)
         self.extrinsics = [utils.randomize_extrinsic(
-                self.base_extrinsic_matrix, self.loc, self.scale
-            ) for _ in range(batch_size)]
+            self.base_extrinsic_matrix, self.loc, self.scale
+        ) for _ in range(batch_size)]
 
         self.camera = o3d.camera.PinholeCameraParameters()
         self.camera.extrinsic = np.linalg.inv(self.base_extrinsic_matrix)
@@ -168,7 +172,7 @@ class PointCloudToRGBD():
         to_filter = [1, 1, 0, 0, 0, 0]
         self.camera.intrinsic = o3d.camera.PinholeCameraIntrinsic(
             *map(lambda val: int(val[1]) if to_filter[val[0]] else val[1],
-                enumerate([*intrinsics]))
+                 enumerate([*intrinsics]))
         )
 
         self.view_control = self.visualizer.get_view_control()
@@ -182,14 +186,17 @@ class PointCloudToRGBD():
     def _get_rgb(self, pc: o3d.geometry.PointCloud, batch_idx: int) -> torch.Tensor:
         self.camera.extrinsic = self.extrinsics[batch_idx]
         self.visualizer.add_geometry(pc)
-        self.view_control.convert_from_pinhole_camera_parameters(self.camera, True)
+        # self.visualizer.update_geometry()
+        self.view_control.convert_from_pinhole_camera_parameters(
+            self.camera, True)
         self.visualizer.poll_events()
         self.visualizer.update_renderer()
         rendered_image = torch.from_numpy(
-                np.asarray(
-                    self.visualizer.capture_screen_float_buffer(do_render=True)
-                )
-            ).permute(2, 0, 1)
+            np.asarray(
+                self.visualizer.capture_screen_float_buffer(do_render=True)
+            )
+        ).permute(2, 0, 1)
+        self.visualizer.remove_geometry(pc)
         self.visualizer.clear_geometries()
 
         return rendered_image
@@ -205,7 +212,8 @@ class PointCloudToRGBD():
         depth_points = np.hstack([depth_points, np.ones((points_n, 1))])
 
         depth_projected = depth_points @ K.T
-        depth_projected = depth_projected / depth_points[:, 2].reshape(points_n, 1)
+        depth_projected = depth_projected / \
+            depth_points[:, 2].reshape(points_n, 1)
         depth_projected = np.delete(depth_projected, 2, axis=1)
         depth_projected[:, 2] = 1 / depth_projected[:, 2]
         depth_projected[:, :2] = depth_projected[:, :2].round()
@@ -213,7 +221,7 @@ class PointCloudToRGBD():
         depth_index = (
             (0 <= depth_projected[:, 0]) *
             (depth_projected[:, 0] < image_size[1]) *
-            (0 <= depth_projected[:, 1]) * 
+            (0 <= depth_projected[:, 1]) *
             (depth_projected[:, 1] < image_size[0])
         )
 
@@ -274,7 +282,8 @@ class RGBDepthToRGBD():
         pil_depth = Image.open(pc_path_png)
 
         image_rgb = self.pil_to_tensor(pil_rgb) / 255
-        image_depth = self.pil_to_tensor(pil_depth) / 255 * float(pil_depth.text.get('MaxDepth', 1))
+        image_depth = self.pil_to_tensor(
+            pil_depth) / 255 * float(pil_depth.text.get('MaxDepth', 1))
 
         # image_background = torch.rand(
         #     (*map(int, self.intrinsics[1::-1]), 3)
