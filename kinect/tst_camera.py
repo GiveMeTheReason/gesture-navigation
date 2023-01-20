@@ -4,8 +4,8 @@ import cv2
 import k4a
 import numpy as np
 import torch
-import torchvision.transforms as transforms
 
+import model.transforms as transforms
 from model.model_cnn import CNNClassifier
 
 device = k4a.Device.open()
@@ -50,8 +50,8 @@ base_fps = 30
 target_fps = 5
 # target_fps = 30
 
-label_map = {gesture: i for i, gesture in enumerate(GESTURES_SET, start=1)}
-label_map['no_gesture'] = 0
+label_map = {gesture: i for i, gesture in enumerate(GESTURES_SET)}
+label_map['no_gesture'] = len(label_map)
 
 batch_size = 1
 
@@ -75,18 +75,8 @@ model.eval()
 
 to_tensor = transforms.ToTensor()
 
-resize = transforms.Resize(resized_image_size, transforms.InterpolationMode.NEAREST)
-
-class NormalizeDepth():
-    def __call__(self, tensor):
-        mask = tensor > 0
-        tensor_min = tensor[mask].min()
-        tensor_max = tensor.max()
-        res_tensor = torch.zeros_like(tensor)
-        res_tensor[mask] = 1 - (tensor[mask] - tensor_min) / (tensor_max - tensor_min)
-        return res_tensor
-
-depth_norm = NormalizeDepth()
+depth_tf = transforms.TestDepthTransforms(resized_image_size, True)
+rgb_tf = transforms.TestRGBTransforms(resized_image_size)
 
 inv_map = {v: k for k, v in label_map.items()}
 
@@ -95,23 +85,50 @@ while True:
 
     depth_on_color = transformation.depth_image_to_color_camera(capture.depth)
 
-    rgb = capture.color.data[:, :, :3][:, :, [2, 1, 0]]
     depth = depth_on_color.data.astype(np.float32)
     depth = np.where(depth > 2000, 0, depth)
+    rgb = capture.color.data[:, :, :3][:, :, [2, 1, 0]]
+    rgb = np.where(depth[..., None] == 0, 0, rgb)
 
-    input_image = resize(torch.cat((to_tensor(rgb), depth_norm(to_tensor(depth))), 0))[None, ...]
-    preds = model(input_image)
+    with torch.no_grad():
+        transformed_rgb = rgb_tf(to_tensor(rgb[:, :, [2, 1, 0]]))
+        transformed_depth = depth_tf(to_tensor(depth))
+
+        input_image = torch.cat(
+            (
+                transformed_rgb,
+                transformed_depth,
+            ), 0
+        )[None, ...]
+
+        preds = model(input_image)
 
     label = inv_map[torch.argmax(preds).item()]
     print(preds, capture.color.device_timestamp_usec)
 
-    # if capture.depth.data is not None:
-    #     cv2.imshow('Depth', capture.depth.data)
+    with open('tst_camera.txt', 'a', encoding='utf-8') as log_file:
+        timestamp = capture.color.device_timestamp_usec
+        log_file.write(
+            ''.join([
+                f'{gest}: {pred:>9.4f} | '
+                for gest, pred
+                in zip(GESTURES_SET + ('no_gesture',), preds[0])
+                ]) + f'{timestamp:>10} | ' + f'{label}\n')
+
+    # if capture.color.depth is not None:
+    #     cv2.imshow('Depth', capture.color.depth)
+    # if depth is not None:
+    #     cv2.putText(depth, label, (500, 500), cv2.FONT_HERSHEY_PLAIN, 3, 0, 5)
+    #     cv2.imshow('Depth', depth)
     # if capture.ir.data is not None:
         # cv2.imshow('IR', capture.ir.data)
-    if capture.color.data is not None:
-        cv2.putText(capture.color.data, label, (500,500), cv2.FONT_HERSHEY_PLAIN, 3, (0, 255, 0), 5)
-        cv2.imshow('Color', capture.color.data)
+    # if capture.color.data is not None:
+    #     cv2.putText(capture.color.data, label, (500, 500), cv2.FONT_HERSHEY_PLAIN, 3, (0, 255, 0), 5)
+    #     cv2.imshow('Color', capture.color.data)
+    rgb = cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB)
+    if rgb is not None:
+        cv2.putText(rgb, label, (500, 500), cv2.FONT_HERSHEY_PLAIN, 3, (0, 255, 0), 5)
+        cv2.imshow('Color', rgb)
     # if capture.transformed_depth is not None:
     #     cv2.imshow('Transformed Depth', capture.transformed_depth)
     # if capture.transformed_color is not None:

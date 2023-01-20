@@ -2,11 +2,11 @@ import os
 import typing as tp
 
 import numpy as np
-import open3d as o3d
 import torch
 import torchvision.transforms as T
 from PIL import Image
 
+import open3d as o3d
 import utils.utils as utils
 
 image_sizeT = tp.Tuple[int, int]
@@ -112,6 +112,10 @@ class TestDepthTransforms():
 
     def __call__(self, tensor: torch.Tensor) -> torch.Tensor:
         return self.transforms(tensor)
+
+
+class ToTensor(T.ToTensor):
+    ...
 
 
 class NormalizeDepth():
