@@ -1,0 +1,98 @@
+experiment_id: &exp_id
+  !zfill_id 1
+
+
+gestures:
+  gestures_set:
+    start: 0
+    select: 1
+  with_rejection:
+    true
+
+
+train:
+  seed: 0
+  train_ratio: 0.75
+
+  epochs: 1
+  validation_epoch_interval: 1
+
+  batch_size: 12
+  max_workers: 2
+
+  frames_buffer: 1
+  base_fps: 30
+  target_fps: 5
+  resized_image_size: [72, 128]
+
+  lr: 0.0001
+  weight_decay: 0.001
+  weights: [1.0, 1.0, 1.0]
+
+
+augmentations:
+  # metres, degrees  
+  angle: -30
+  z_target: 1.25
+  loc_angles: [0.0, 0.0, 0.0]
+  los_position: [0.0, 0.0, 0.0]
+  std_angles: [5, 6.66, 2.5]
+  std_position: [0.13, 0.07, 0.07]
+
+
+annotation:
+  gestures_params:
+    start:
+      coord: 2
+      ratio: 0.2
+    select:
+      coord: 2
+      ratio: 0.4
+
+
+base_dir: &base_dir
+  !join_path [/, root, project]
+
+
+directories:
+  datasets:
+    initial_dir:
+      !join_path [*base_dir, gestures_dataset_initial]
+    processed_dir:
+      !join_path [*base_dir, gestures_dataset_processed]
+
+  cameras:
+    base_dir: &cameras_base_dir
+      !join_path [*base_dir, gestures_navigation, cameras]
+    calibration_dir: &calibration_params_dir
+      !join_path [*cameras_base_dir, calib_params]
+    render_option:
+      !join_path [*cameras_base_dir, render_option.json]
+    cameras:
+      # main (center) camera
+      camera_main:
+        dir: cam_center
+        intrinsic:
+          !join_path [*calibration_params_dir, 1m.json]
+      # right camera
+      camera_1:
+        dir: cam_right
+        intrinsic:
+          !join_path [*calibration_params_dir, 2s.json]
+        extrinsic:
+          !join_path [*calibration_params_dir, 1-2, calibration_blob.json]
+      # left camera
+      camera_2:
+        dir: cam_left
+        intrinsic:
+          !join_path [*calibration_params_dir, 9s.json]
+        extrinsic:
+          !join_path [*calibration_params_dir, 1-9, calibration_blob.json]
+
+  outputs:
+    base_dir: &outputs_base_dir
+      !join_path [/, root, project, outputs, *exp_id]
+    logger_path:
+      !join_path [*outputs_base_dir, train_log.txt]
+    checkpoint_path:
+      !join_path [*outputs_base_dir, checkpoint.pth]
