@@ -6,6 +6,7 @@ import numpy as np
 import torch
 
 import model.transforms as transforms
+from config import CONFIG
 from model.model_cnn import CNNClassifier
 
 PARTICIPANT = 'G104'
@@ -13,11 +14,7 @@ GESTURE = 'start'
 HAND = 'left'
 TRIAL = 'trial5'
 
-BASE_DIR = os.path.join(
-    'D:\\',
-    'GesturesNavigation',
-    'dataset',
-)
+BASE_DIR = CONFIG['directories']['datasets']['initial_dir']
 
 TEST_SAMPLE_PATH = os.path.join(
     BASE_DIR,
@@ -27,26 +24,21 @@ TEST_SAMPLE_PATH = os.path.join(
     TRIAL,
 )
 
-GESTURES_SET = (
-    'start',
-    'select',
-)
+GESTURES_MAP = CONFIG['gestures']['gestures_set']
+GESTURES_SET = [gesture[0] for gesture in GESTURES_MAP]
 
-resized_image_size = (72, 128)
-frames = 1
-base_fps = 30
-target_fps = 5
-# target_fps = 30
+resized_image_size = CONFIG['train']['resized_image_size']
+frames = CONFIG['train']['frames_buffer']
+base_fps = CONFIG['train']['base_fps']
+target_fps = CONFIG['train']['target_fps']
 
-label_map = {gesture: i for i, gesture in enumerate(GESTURES_SET)}
-label_map['no_gesture'] = len(label_map)
+label_map = {**GESTURES_MAP}
+if CONFIG['gestures']['with_rejection']:
+    label_map['no_gesture'] = len(label_map)
 
 batch_size = 1
 
-CHECHPOINT_PATH = os.path.join(
-    'outputs',
-    'checkpoint01.pth',
-)
+CHECHPOINT_PATH = CONFIG['directories']['outputs']['checkpoint_path']
 
 
 model = CNNClassifier(
@@ -109,9 +101,9 @@ for rgb_path, depth_path in zip(rgb_paths, depth_paths):
         frame_num = os.path.splitext(os.path.basename(rgb_path))[0]
         log_file.write(
             ''.join([
-                f'{gest}: {pred:>9.4f} | ' 
+                f'{gest}: {pred:>9.4f} | '
                 for gest, pred
-                in zip(GESTURES_SET + ('no_gesture',), preds[0])
+                in zip(GESTURES_SET + ['no_gesture'], preds[0])
             ]) + f'{frame_num:>5} | ' + f'{label}\n')
 
     # if capture.depth.data is not None:
@@ -119,7 +111,8 @@ for rgb_path, depth_path in zip(rgb_paths, depth_paths):
     # if capture.ir.data is not None:
         # cv2.imshow('IR', capture.ir.data)
     if rgb is not None:
-        cv2.putText(rgb, label, (500,500), cv2.FONT_HERSHEY_PLAIN, 3, (0, 255, 0), 5)
+        cv2.putText(rgb, label, (500, 500),
+                    cv2.FONT_HERSHEY_PLAIN, 3, (0, 255, 0), 5)
         cv2.imshow('Color', rgb)
     # if capture.transformed_depth is not None:
     #     cv2.imshow('Transformed Depth', capture.transformed_depth)

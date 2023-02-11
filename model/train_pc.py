@@ -13,104 +13,67 @@ import model.train_loop as train_loop
 import model.transforms as transforms
 import utils.utils as utils
 import utils.utils_o3d as utils_o3d
+from config import CONFIG
 
 
 def main():
-    exp_id = '01'
-    # log_filename = os.path.join('outputs', f'train_log{exp_id}.txt')
-    # checkpoint_path = os.path.join('outputs', f'checkpoint{exp_id}.pth')
-    log_filename = os.path.join(
-        '/root',
-        'project',
-        'outputs',
-        f'train_log{exp_id}.txt',
-    )
-    checkpoint_path = os.path.join(
-        '/root',
-        'project',
-        'outputs',
-        f'checkpoint{exp_id}.pth',
-    )
+    exp_id = CONFIG['experiment_id']
+    log_filename = CONFIG['directories']['outputs']['logger_path']
+    checkpoint_path = CONFIG['directories']['outputs']['checkpoint_path']
 
-    seed = 0
+    seed = CONFIG['train']['seed']
     device = 'cpu' if not torch.cuda.is_available() else 'cuda'
 
-    GESTURES_SET = (
-        'start',
-        'select',
-    )
-    with_rejection = True
+    GESTURES_MAP = CONFIG['gestures']['gestures_set']
+    GESTURES_SET = [gesture[0] for gesture in GESTURES_MAP]
+    with_rejection = CONFIG['gestures']['with_rejection']
 
-    # PC_DATA_DIR = os.path.join(
-    #     os.path.expanduser('~'),
-    #     'personal',
-    #     'gestures_navigation',
-    #     'pc_data',
-    #     'dataset',
-    # )
-    # PC_DATA_DIR = os.path.join(
-    #     # 'D:\\',
-    #     'GesturesNavigation',
-    #     'dataset',
-    # )
-    PC_DATA_DIR = os.path.join(
-        '/root',
-        'project',
-        'gestures_dataset_processed',
-    )
+    PC_DATA_DIR = CONFIG['directories']['datasets']['processed_dir']
 
-    CAMERAS_DIR = ('cam_center',)
-    # CALIBRATION_DIR = os.path.join(os.path.dirname(PC_DATA_DIR), 'calib_params')
-    CALIBRATION_DIR = os.path.join(
-        os.path.dirname(PC_DATA_DIR),
-        'gestures_navigation',
-        'data',
-        'calib_params',
-    )
-    CALIBRATION_INTRINSIC = {
-        'cam_center': '1m.json',
-    }
+    cameras = sorted([cam for cam in CONFIG['directories']
+                      ['cameras']['cameras'].keys()])[-1:]
+    CAMERAS_DIR = [CONFIG['directories']
+                   ['cameras']['cameras'][cam]['dir'] for cam in cameras]
+    CALIBRATION_INTRINSIC = {CONFIG['directories']
+                             ['cameras']['cameras'][cam]['dir']: CONFIG['directories']
+                             ['cameras']['cameras'][cam]['intrinsic'] for cam in cameras}
 
-    # RENDER_OPTION = 'render_option.json'
-    RENDER_OPTION = os.path.join(
-        os.path.dirname(PC_DATA_DIR),
-        'gestures_navigation',
-        'data',
-        'render_option.json'
-    )
+    RENDER_OPTION = CONFIG['directories']['cameras']['render_option']
 
     main_camera_index = 0
 
-    label_map = {gesture: i for i, gesture in enumerate(GESTURES_SET)}
-    if with_rejection:
+    label_map = {**GESTURES_MAP}
+    if CONFIG['gestures']['with_rejection']:
         label_map['no_gesture'] = len(label_map)
 
-    batch_size = 12
-    max_workers = 2
+    batch_size = CONFIG['train']['batch_size']
+    max_workers = CONFIG['train']['max_workers']
 
-    frames = 1
-    base_fps = 30
-    target_fps = 5
-    resized_image_size = (72, 128)
+    resized_image_size = CONFIG['train']['resized_image_size']
+    frames = CONFIG['train']['frames_buffer']
+    base_fps = CONFIG['train']['base_fps']
+    target_fps = CONFIG['train']['target_fps']
 
-    angle = np.deg2rad(-30)
-    z_target = 1.25
+    angle = np.deg2rad(CONFIG['augmentations']['angle'])
+    z_target = CONFIG['augmentations']['z_target']
 
-    loc = np.array([0., 0., 0., 0., 0., 0.])
-    scale = np.array([np.pi/24, np.pi/18, np.pi/48, 0.2, 0.1, 0.1]) / 1.5
+    loc = np.array(CONFIG['augmentations']['loc_angles'] +
+                   CONFIG['augmentations']['los_position'])
+    scale = np.array(CONFIG['augmentations']['std_angles'] +
+                     CONFIG['augmentations']['std_position'])
 
-    lr = 1e-4
-    weight_decay = 1e-3
-    weight = torch.tensor([1., 1., 1.])
+    lr = CONFIG['train']['lr']
+    weight_decay = CONFIG['train']['weight_decay']
+    weight = torch.tensor(CONFIG['train']['weights'])
 
-    epochs = 1
-    validate_each_epoch = 1
+    epochs = CONFIG['train']['epochs']
+    validate_each_epoch = CONFIG['train']['validation_epoch_interval']
 
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
 
-    intrinsics_paths = [os.path.join(CALIBRATION_DIR, CALIBRATION_INTRINSIC[camera])
+    intrinsics_paths = [CALIBRATION_INTRINSIC[camera]
                         for camera in CAMERAS_DIR]
     intrinsics = utils.get_intrinsics(intrinsics_paths)[main_camera_index]
 
@@ -140,7 +103,8 @@ def main():
         d for d in glob.glob(os.path.join(PC_DATA_DIR, 'G*/*/*/*'))
         if d.split(os.path.sep)[-3] in GESTURES_SET
     ]
-    train_len = int(0.75 * len(data_list))
+    train_len = int(
+        CONFIG['train']['train_ratio'] * len(data_list))
     test_len = len(data_list) - train_len
     train_list, test_list = map(
         list, torch.utils.data.random_split(data_list, [train_len, test_len]))

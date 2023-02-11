@@ -2,35 +2,14 @@ import glob
 import os
 import random
 
-GESTURES_SET = (
-    'start',
-    'select',
-)
+from config import CONFIG
 
-# PC_DATA_DIR = os.path.join(
-#     os.path.expanduser('~'),
-#     'personal',
-#     'gestures_dataset',
-#     'HuaweiGesturesDataset',
-#     'undistorted'
-# )
-# PC_DATA_DIR = os.path.join(
-#     'D:\\',
-#     'GesturesNavigation',
-#     'dataset',
-# )
-# PC_DATA_DIR = os.path.join(
-#     os.path.expanduser('~'),
-#     'personal',
-#     'gestures_dataset',
-# )
-PC_DATA_DIR = os.path.join(
-    '/root',
-    'project',
-    'gestures_dataset_processed',
-)
+GESTURES_MAP = CONFIG['gestures']['gestures_set']
+GESTURES_SET = [gesture[0] for gesture in GESTURES_MAP]
 
-random.seed(0)
+PC_DATA_DIR = CONFIG['directories']['datasets']['processed_dir']
+
+random.seed(CONFIG['train']['seed'])
 
 
 def main():

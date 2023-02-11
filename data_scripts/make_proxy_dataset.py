@@ -9,73 +9,29 @@ import torchvision.transforms as T
 import model.transforms as transforms
 import utils.utils as utils
 import utils.utils_o3d as utils_o3d
+from config import CONFIG
 
-GESTURES_SET = (
-    'start',
-    'select',
-)
+GESTURES_MAP = CONFIG['gestures']['gestures_set']
+GESTURES_SET = [gesture[0] for gesture in GESTURES_MAP]
 
-# PC_DATA_DIR = os.path.join(
-#     os.path.expanduser('~'),
-#     'personal',
-#     'gestures_dataset',
-#     'HuaweiGesturesDataset',
-#     'undistorted'
-# )
-# PC_DATA_DIR = os.path.join(
-#     'D:\\',
-#     'GesturesNavigation',
-#     'dataset',
-# )
-PC_DATA_DIR = os.path.join(
-    '/root',
-    'project',
-    'gestures_dataset_processed',
-)
+PC_DATA_DIR = CONFIG['directories']['datasets']['processed_dir']
+SAVE_DIR = CONFIG['directories']['datasets']['processed_dir']
 
-# SAVE_DIR = os.path.join(
-#     os.path.expanduser('~'),
-#     'personal',
-#     'gestures_navigation',
-#     'pc_data',
-#     'dataset',
-# )
-# SAVE_DIR = os.path.join(
-#     'D:\\',
-#     'GesturesNavigation',
-#     'dataset',
-# )
-SAVE_DIR = os.path.join(
-    '/root',
-    'project',
-    'gestures_dataset_processed',
-)
+RENDER_OPTION = CONFIG['directories']['cameras']['render_option']
 
-# RENDER_OPTION = 'render_option.json'
-RENDER_OPTION = os.path.join(
-    os.path.dirname(PC_DATA_DIR),
-    'gestures_navigation',
-    'data',
-    'render_option.json'
-)
+cameras = sorted([cam for cam in CONFIG['directories']
+                 ['cameras']['cameras'].keys()])
+cameras = cameras[-1:] + cameras[:-1]
+CAMERAS_DIR = [CONFIG['directories']
+               ['cameras']['cameras'][cam]['dir'] for cam in cameras]
 
-CAMERAS_DIR = ('cam_center', 'cam_right', 'cam_left')
-
-CALIBRATION_DIR = os.path.join(
-    os.path.dirname(PC_DATA_DIR),
-    'gestures_navigation',
-    'data',
-    'calib_params',
-)
-CALIBRATION_INTRINSIC = {
-    'cam_center': '1m.json',
-    'cam_right': '2s.json',
-    'cam_left': '9s.json',
-}
+CALIBRATION_INTRINSIC = {CONFIG['directories']
+                         ['cameras']['cameras'][cam]['dir']: CONFIG['directories']
+                         ['cameras']['cameras'][cam]['intrinsic'] for cam in cameras}
 
 
 def main():
-    intrinsics_paths = [os.path.join(CALIBRATION_DIR, CALIBRATION_INTRINSIC[camera])
+    intrinsics_paths = [CALIBRATION_INTRINSIC[camera]
                         for camera in CAMERAS_DIR]
     intrinsics = utils.get_intrinsics(intrinsics_paths)
 
@@ -90,11 +46,13 @@ def main():
     rgb_to_pil = T.ToPILImage(mode='RGB')
     depth_to_pil = T.ToPILImage(mode='L')
 
-    angle = np.deg2rad(-30)
-    z_target = 1.25
+    angle = np.deg2rad(CONFIG['augmentations']['angle'])
+    z_target = CONFIG['augmentations']['z_target']
 
-    loc = np.array([0., 0., 0., 0., 0., 0.])
-    scale = np.array([np.pi/24, np.pi/18, np.pi/48, 0.2, 0.1, 0.1]) / 1.5
+    loc = np.array(CONFIG['augmentations']['loc_angles'] +
+                   CONFIG['augmentations']['los_position'])
+    scale = np.array(CONFIG['augmentations']['std_angles'] +
+                     CONFIG['augmentations']['std_position'])
 
     img_transforms = transforms.PointCloudToRGBD(
         batch_size,

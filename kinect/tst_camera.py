@@ -6,6 +6,7 @@ import numpy as np
 import torch
 
 import model.transforms as transforms
+from config import CONFIG
 from model.model_cnn import CNNClassifier
 
 device = k4a.Device.open()
@@ -38,27 +39,21 @@ calibration = device.get_calibration(
 # Create Transformation
 transformation = k4a.Transformation(calibration)
 
+GESTURES_MAP = CONFIG['gestures']['gestures_set']
+GESTURES_SET = [gesture[0] for gesture in GESTURES_MAP]
 
-GESTURES_SET = (
-    'start',
-    'select',
-)
+resized_image_size = CONFIG['train']['resized_image_size']
+frames = CONFIG['train']['frames_buffer']
+base_fps = CONFIG['train']['base_fps']
+target_fps = CONFIG['train']['target_fps']
 
-resized_image_size = (72, 128)
-frames = 1
-base_fps = 30
-target_fps = 5
-# target_fps = 30
-
-label_map = {gesture: i for i, gesture in enumerate(GESTURES_SET)}
-label_map['no_gesture'] = len(label_map)
+label_map = {**GESTURES_MAP}
+if CONFIG['gestures']['with_rejection']:
+    label_map['no_gesture'] = len(label_map)
 
 batch_size = 1
 
-CHECHPOINT_PATH = os.path.join(
-    'outputs',
-    'checkpoint01.pth',
-)
+CHECHPOINT_PATH = CONFIG['directories']['outputs']['checkpoint_path']
 
 
 model = CNNClassifier(
@@ -112,8 +107,8 @@ while True:
             ''.join([
                 f'{gest}: {pred:>9.4f} | '
                 for gest, pred
-                in zip(GESTURES_SET + ('no_gesture',), preds[0])
-                ]) + f'{timestamp:>10} | ' + f'{label}\n')
+                in zip(GESTURES_SET + ['no_gesture'], preds[0])
+            ]) + f'{timestamp:>10} | ' + f'{label}\n')
 
     # if capture.color.depth is not None:
     #     cv2.imshow('Depth', capture.color.depth)
@@ -127,7 +122,8 @@ while True:
     #     cv2.imshow('Color', capture.color.data)
     rgb = cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB)
     if rgb is not None:
-        cv2.putText(rgb, label, (500, 500), cv2.FONT_HERSHEY_PLAIN, 3, (0, 255, 0), 5)
+        cv2.putText(rgb, label, (500, 500),
+                    cv2.FONT_HERSHEY_PLAIN, 3, (0, 255, 0), 5)
         cv2.imshow('Color', rgb)
     # if capture.transformed_depth is not None:
     #     cv2.imshow('Transformed Depth', capture.transformed_depth)

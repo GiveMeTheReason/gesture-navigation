@@ -2,48 +2,14 @@ import glob
 import os
 
 import utils.utils_o3d as utils_o3d
+from config import CONFIG
 
-GESTURES_SET = (
-    'start',
-    'select',
-)
+GESTURES_MAP = CONFIG['gestures']['gestures_set']
+GESTURES_SET = [gesture[0] for gesture in GESTURES_MAP]
 
-GESTURES_PARAMS = {
-    'start': {
-        'coord': 2,
-        'ratio': 0.2,
-    },
-    'select': {
-        'coord': 2,
-        'ratio': 0.4,
-    },
-    'swipe_right': {
-        'coord': 2,
-        'ratio': 0.4,
-    },
-    'swipe_left': {
-        'coord': 2,
-        'ratio': 0.4,
-    },
-}
+GESTURES_PARAMS = CONFIG['annotation']['gestures_params']
 
-# SAVE_DIR = os.path.join(
-#     os.path.expanduser('~'),
-#     'personal',
-#     'gestures_navigation',
-#     'pc_data',
-#     'dataset'
-# )
-# SAVE_DIR = os.path.join(
-#     'D:\\',
-#     'GesturesNavigation',
-#     'dataset',
-# )
-SAVE_DIR = os.path.join(
-    '/root',
-    'project',
-    'gestures_dataset_processed',
-)
+SAVE_DIR = CONFIG['directories']['datasets']['processed_dir']
 
 
 def main():

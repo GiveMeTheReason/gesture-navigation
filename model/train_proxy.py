@@ -11,70 +11,45 @@ import model.losses as losses
 import model.model_cnn as model_cnn
 import model.train_loop as train_loop
 import model.transforms as transforms
+from config import CONFIG
 
 
 def main():
-    exp_id = '01'
-    # log_filename = os.path.join('outputs', f'train_log{exp_id}.txt')
-    # checkpoint_path = os.path.join('outputs', f'checkpoint{exp_id}.pth')
-    log_filename = os.path.join(
-        '/root',
-        'project',
-        'outputs',
-        f'train_log{exp_id}.txt',
-    )
-    checkpoint_path = os.path.join(
-        '/root',
-        'project',
-        'outputs',
-        f'checkpoint{exp_id}.pth',
-    )
+    exp_id = CONFIG['experiment_id']
+    log_filename = CONFIG['directories']['outputs']['logger_path']
+    checkpoint_path = CONFIG['directories']['outputs']['checkpoint_path']
 
-    seed = 0
+    seed = CONFIG['train']['seed']
     device = 'cpu' if not torch.cuda.is_available() else 'cuda'
 
-    GESTURES_SET = (
-        'start',
-        'select',
-    )
-    with_rejection = True
+    GESTURES_MAP = CONFIG['gestures']['gestures_set']
+    GESTURES_SET = [gesture[0] for gesture in GESTURES_MAP]
+    with_rejection = CONFIG['gestures']['with_rejection']
 
-    # PC_DATA_DIR = os.path.join(
-    #     os.path.expanduser('~'),
-    #     'personal',
-    #     'gestures_navigation',
-    #     'pc_data',
-    #     'dataset',
-    # )
-    # PC_DATA_DIR = os.path.join(
-    #     'D:\\',
-    #     'GesturesNavigation',
-    #     'dataset',
-    # )
-    PC_DATA_DIR = os.path.join(
-        '/root',
-        'project',
-        'gestures_dataset_processed',
-    )
+    PC_DATA_DIR = CONFIG['directories']['datasets']['processed_dir']
 
     label_map = {gesture: i for i, gesture in enumerate(GESTURES_SET)}
     if with_rejection:
         label_map['no_gesture'] = len(label_map)
 
-    batch_size = 24
-    max_workers = 2
+    label_map = {**GESTURES_MAP}
+    if CONFIG['gestures']['with_rejection']:
+        label_map['no_gesture'] = len(label_map)
 
-    frames = 1
-    base_fps = 30
-    target_fps = 5
-    resized_image_size = (72, 128)
+    batch_size = CONFIG['train']['batch_size']
+    max_workers = CONFIG['train']['max_workers']
 
-    lr = 1e-4
-    weight_decay = 1e-4
-    weight = torch.tensor([1., 1., 1.])
+    resized_image_size = CONFIG['train']['resized_image_size']
+    frames = CONFIG['train']['frames_buffer']
+    base_fps = CONFIG['train']['base_fps']
+    target_fps = CONFIG['train']['target_fps']
 
-    epochs = 20
-    validate_each_epoch = 1
+    lr = CONFIG['train']['lr']
+    weight_decay = CONFIG['train']['weight_decay']
+    weight = torch.tensor(CONFIG['train']['weights'])
+
+    epochs = CONFIG['train']['epochs']
+    validate_each_epoch = CONFIG['train']['validation_epoch_interval']
 
     random.seed(seed)
     np.random.seed(seed)
@@ -95,7 +70,7 @@ def main():
         d for d in glob.glob(os.path.join(PC_DATA_DIR, 'G*/*/*/*'))
         if d.split(os.path.sep)[-3] in GESTURES_SET
     ]
-    train_len = int(0.75 * len(data_list))
+    train_len = int(CONFIG['train']['train_ratio'] * len(data_list))
     test_len = len(data_list) - train_len
     train_list, test_list = map(
         list, torch.utils.data.random_split(data_list, [train_len, test_len]))

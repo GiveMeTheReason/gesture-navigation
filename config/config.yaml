@@ -3,9 +3,11 @@ experiment_id: &exp_id
 
 
 gestures:
-  gestures_set:
-    start: 0
-    select: 1
+  gestures_set: 
+    [
+      [start, 0],
+      [select, 1],
+    ]
   with_rejection:
     true
 
